@@ -6,4 +6,7 @@ staticfiles/
 .env
 .env.local
 .env.production
+.env.db.production
+docker-compose.override.yml
+get-docker.sh
 .qts-pre-identity-migration.dump
