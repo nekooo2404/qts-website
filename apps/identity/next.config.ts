@@ -6,33 +6,41 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // ============================================
-  // Build performance optimizations
+  // Build Performance (Next.js 16)
   // ============================================
-  // Skip next/image optimization — big build-time speedup
   images: { unoptimized: true },
 
-  // Enable experimental features for faster builds
-  experimental: {
-    // Use newer SWC JIT for faster compilation
-  },
+  productionBrowserSourceMaps: false,
 
-  // ============================================
-  // Production optimizations
-  // ============================================
-  // Standalone output → smaller image, no node_modules needed
   output: "standalone",
 
-  // Minify using SWC (faster than terser)
-  swcMinify: true,
-
-  // Conditionally enable logging in development only
   logging: {
-    fetches: {
-      fullUrl: false,
-    },
+    fetches: { fullUrl: false },
   },
 
-  // API rewrites for backend proxy
+  // ============================================
+  // Compiler Optimizations
+  // ============================================
+  compiler: {
+    removeConsole: {
+      exclude: ["error", "warn"],
+    },
+    reactRemoveProperties: true,
+  },
+
+  // Static asset cache headers
+  async headers() {
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
+  },
+
+  // API proxy rewrite
   async rewrites() {
     return [
       {

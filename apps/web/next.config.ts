@@ -4,35 +4,44 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // ============================================
-  // Build performance optimizations
+  // Build Performance (Next.js 16)
   // ============================================
-  // Skip next/image optimization — big build-time speedup
+  // Skip next/image optimization (chậm) - tăng tốc đáng kể
   images: { unoptimized: true },
 
-  // Enable experimental features for faster builds
-  experimental: {
-    // Use newer SWC JIT for faster compilation
-    // Use compiled SwcTransform for faster builds
-    // optimizePackageImports: ['framer-motion', 'recharts'],
+  // Tắt source maps trong production
+  productionBrowserSourceMaps: false,
+
+  // Standalone output → image nhỏ nhất
+  output: "standalone",
+
+  // Tắt logging nặng trong production
+  logging: {
+    fetches: { fullUrl: false },
   },
 
   // ============================================
-  // Production optimizations
+  // Compiler Optimizations (SWC - default in Next 16)
   // ============================================
-  // Standalone output → smaller image, no node_modules needed
-  output: "standalone",
-
-  // Enable production source maps for debugging (optional)
-  // productionBrowserSourceMaps: false, // Set true only if needed
-
-  // Minify using SWC (faster than terser)
-  swcMinify: true,
-
-  // Conditionally enable logging in development only
-  logging: {
-    fetches: {
-      fullUrl: false,
+  compiler: {
+    // Remove console.* trong production (chỉ giữ error/warn)
+    removeConsole: {
+      exclude: ["error", "warn"],
     },
+    // Tối ưu React component: bỏ debugging props
+    reactRemoveProperties: true,
+  },
+
+  // Cache headers cho static assets (CDN friendly)
+  async headers() {
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
   },
 };
 
