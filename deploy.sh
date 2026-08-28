@@ -19,6 +19,13 @@ docker compose -f docker-compose.yml exec -T db pg_dump -U qts -Fc qts > "$BACKU
   || echo "WARN: db not reachable yet, skipping backup"
 
 echo "[2/6] Build images (dev + prod profile)"
+# Sanity check: workspace packages must exist in lock file, else npm ci will fail
+if command -v node >/dev/null 2>&1; then
+  if ! node -e "const lf=require('./package-lock.json');for(const w of ['@qts/identity','@qts/web','@qts/portal']){if(!lf.packages?.['node_modules/'+w]){console.error('Lock file missing '+w);process.exit(1)}}" 2>/dev/null; then
+    echo "WARN: lock file out of sync with workspaces — regenerating"
+    npm install --workspaces --include-workspace-root --package-lock-only
+  fi
+fi
 $COMPOSE --profile prod build
 
 echo "[3/6] Migration check (dry run, fails if pending)"

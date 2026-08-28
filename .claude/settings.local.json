@@ -61,7 +61,13 @@
       "Bash(DJANGO_SECRET_KEY=test-prod-key-not-real-1234567890123456789012 DJANGO_DEBUG=false IDENTITY_SIGNING_KEY_PASSPHRASE=test-prod-passphrase-not-real POSTGRES_DB=qts POSTGRES_USER=qts POSTGRES_PASSWORD=qts REDIS_URL=redis://localhost:6379/1 python manage.py collectstatic --noinput)",
       "Bash(chmod +x deploy.sh scripts/backup.sh scripts/restore.sh)",
       "Bash(cat > *)",
-      "Bash(ssh -o ConnectTimeout=8 -o BatchMode=yes root@103.75.185.136 \"echo ok && docker --version 2>/dev/null || echo no-docker\")"
+      "Bash(ssh -o ConnectTimeout=8 -o BatchMode=yes root@103.75.185.136 \"echo ok && docker --version 2>/dev/null || echo no-docker\")",
+      "Bash(cat)",
+      "Bash(python /tmp/finalize_qts.py)",
+      "Bash(python /tmp/fix_api_deploy.py)",
+      "Bash(python /tmp/check_api.py)",
+      "Bash(python /tmp/fix_api_vol.py)",
+      "Bash(python /tmp/finish_api.py)"
     ],
     "additionalDirectories": [
       "\\tmp"
