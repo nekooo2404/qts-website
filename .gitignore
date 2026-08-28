@@ -1,0 +1,9 @@
+node_modules/
+.next/
+dist/
+staticfiles/
+*.dump
+.env
+.env.local
+.env.production
+.qts-pre-identity-migration.dump

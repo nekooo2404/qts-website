@@ -1,0 +1,15 @@
+# Reduce docker build context size
+**/node_modules
+**/.next
+**/dist
+**/.venv
+**/__pycache__
+**/.git
+**/.pytest_cache
+**/.turbo
+*.log
+*.dump
+.env
+.env.production
+.env.local
+backups/

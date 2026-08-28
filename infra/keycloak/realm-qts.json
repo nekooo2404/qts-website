@@ -1,0 +1,93 @@
+{
+  "realm": "qts",
+  "displayName": "QTS",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": true,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 604800,
+  "ssoSessionMaxLifespan": 604800,
+  "roles": {
+    "realm": [
+      { "name": "super-admin", "description": "QTS super administrator" },
+      { "name": "organization-admin", "description": "QTS organization administrator" },
+      { "name": "manager", "description": "QTS manager" },
+      { "name": "employee", "description": "QTS employee" },
+      { "name": "developer", "description": "QTS developer" },
+      { "name": "customer", "description": "QTS customer" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "qts-portal",
+      "name": "QTS Portal",
+      "description": "QTS enterprise operating portal",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:5174/auth/callback"],
+      "webOrigins": ["http://localhost:5174"],
+      "defaultClientScopes": ["profile", "email", "roles", "web-origins", "acr", "basic"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5174/"
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "5fc13c0e-feae-564c-a128-44b42842135f",
+      "username": "alex@qts.com",
+      "email": "alex@qts.com",
+      "firstName": "Alex",
+      "lastName": "Harper",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "realmRoles": ["super-admin"]
+    },
+    {
+      "id": "31de3c9c-325b-589d-8370-0f9fd1bb9505",
+      "username": "maya@qts.com",
+      "email": "maya@qts.com",
+      "firstName": "Maya",
+      "lastName": "Chen",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "realmRoles": ["developer"]
+    },
+    {
+      "id": "12b2bdcd-4631-511d-a737-6fca70068c94",
+      "username": "jonas@qts.com",
+      "email": "jonas@qts.com",
+      "firstName": "Jonas",
+      "lastName": "Lee",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "realmRoles": ["manager"]
+    },
+    {
+      "id": "78e2b96a-237f-512c-b790-205347acbd88",
+      "username": "nora@qts.com",
+      "email": "nora@qts.com",
+      "firstName": "Nora",
+      "lastName": "Lewis",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "realmRoles": ["employee"]
+    }
+  ]
+}

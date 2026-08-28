@@ -1,0 +1,24 @@
+# QTS reverse proxy (Caddy) — replace qts.example.com with real domains.
+# Caddy auto-issues Let's Encrypt certs on port 443.
+# Compose ports stay localhost-only in production; edit docker-compose.yml
+# port bindings to "127.0.0.1:<port>:<port>" before going live.
+
+web.qts.example.com {
+	reverse_proxy localhost:3000
+}
+
+portal.qts.example.com {
+	reverse_proxy localhost:5174
+}
+
+identity.qts.example.com {
+	reverse_proxy localhost:3001
+}
+
+api.qts.example.com {
+	reverse_proxy localhost:8000
+}
+
+keycloak.qts.example.com {
+	reverse_proxy localhost:8081
+}
