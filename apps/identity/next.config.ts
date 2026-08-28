@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // ============================================
-  // Build Performance (Next.js 16)
+  // Build Performance (Next.js 15.5)
   // ============================================
   images: { unoptimized: true },
 
@@ -18,9 +18,14 @@ const nextConfig: NextConfig = {
     fetches: { fullUrl: false },
   },
 
-  // ============================================
-  // Compiler Optimizations
-  // ============================================
+  experimental: {
+    optimizePackageImports: [
+      "framer-motion",
+      "recharts",
+      "@heroicons/react",
+    ],
+  },
+
   compiler: {
     removeConsole: {
       exclude: ["error", "warn"],

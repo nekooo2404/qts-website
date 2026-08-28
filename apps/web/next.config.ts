@@ -4,35 +4,37 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // ============================================
-  // Build Performance (Next.js 16)
+  // Build Performance (Next.js 15.5)
   // ============================================
-  // Skip next/image optimization (chậm) - tăng tốc đáng kể
   images: { unoptimized: true },
 
-  // Tắt source maps trong production
   productionBrowserSourceMaps: false,
 
-  // Standalone output → image nhỏ nhất
   output: "standalone",
 
-  // Tắt logging nặng trong production
   logging: {
     fetches: { fullUrl: false },
   },
 
-  // ============================================
-  // Compiler Optimizations (SWC - default in Next 16)
-  // ============================================
+  // Tree-shake cho các package lớn (Next 15 vẫn cần khai báo trong experimental)
+  experimental: {
+    optimizePackageImports: [
+      "framer-motion",
+      "recharts",
+      "@heroicons/react",
+      "animate.css",
+    ],
+  },
+
+  // SWC compiler optimizations
   compiler: {
-    // Remove console.* trong production (chỉ giữ error/warn)
     removeConsole: {
       exclude: ["error", "warn"],
     },
-    // Tối ưu React component: bỏ debugging props
     reactRemoveProperties: true,
   },
 
-  // Cache headers cho static assets (CDN friendly)
+  // Cache headers cho static assets
   async headers() {
     return [
       {

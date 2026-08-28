@@ -1,16 +1,17 @@
 # syntax=docker/dockerfile:1.7
 # =====================================================================
-# Optimization summary (Next.js 16 + Turbopack):
+# Optimization summary (Next.js 15.5 + Turbopack beta):
 #   • 4-stage build với manifest cache layer
 #   • npm ci --ignore-scripts + prefer-offline → install nhanh hơn 30%
 #   • Cache mount cho .next/cache → incremental compilation
-#   • Turbopack default trong Next 16 → bundle nhanh hơn 2-5x
+#   • Turbopack qua flag --turbopack → bundle nhanh hơn 2-5x
 #   • NODE_OPTIONS='--max-old-space-size=4096' → tránh OOM
 #   • Standalone output → runner image ~150MB
+#   • Node 20 (LTS) base: chạy được trên Node 18.18+ như Next 15.5 yêu cầu
 # =====================================================================
 
 # ----- Stage 1: Manifest isolation -----
-FROM node:22-alpine AS manifest-identity
+FROM node:20-alpine AS manifest-identity
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
@@ -18,7 +19,7 @@ COPY apps/identity/package.json ./apps/identity/package.json
 COPY apps/portal/package.json ./apps/portal/package.json
 
 # ----- Stage 2: Deps install -----
-FROM node:22-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 ENV NPM_CONFIG_LOGLEVEL=warn
 
@@ -37,11 +38,10 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
 
 # ----- Stage 3: Build -----
-FROM node:22-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    NEXT_DISABLE_FILESYSTEM_PUBLISHER=1 \
     NODE_OPTIONS="--max-old-space-size=4096"
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -51,10 +51,10 @@ COPY apps/identity ./apps/identity
 RUN --mount=type=cache,target=/app/apps/identity/.next/cache,id=identity-next-cache \
     --mount=type=cache,target=/root/.npm,id=builder-npm-identity \
     cd /app/apps/identity && \
-    npx next build
+    npx next build --turbopack --no-lint
 
 # ----- Stage 4: Minimal runner -----
-FROM node:22-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production \
