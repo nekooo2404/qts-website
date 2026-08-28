@@ -1,10 +1,9 @@
-# QTS reverse proxy (Caddy) — production domains qts.vn
+# QTS reverse proxy (Caddy) — production domains qts.group.vn
 # Caddy auto-issues Let's Encrypt certs on port 443.
-# Compose ports stay localhost-only in production; edit docker-compose.yml
-# port bindings to "127.0.0.1:<port>:<port>" before going live.
+# Compose ports stay localhost-only in production.
 
 # Marketing site (Next.js web app)
-qts.vn {
+qts.group.vn, www.qts.group.vn {
 	reverse_proxy localhost:3000
 	header {
 		# Security headers cho production
@@ -17,7 +16,7 @@ qts.vn {
 }
 
 # Portal (Vite SPA)
-portal.qts.vn {
+portal.qts.group.vn {
 	reverse_proxy localhost:5174
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -28,7 +27,7 @@ portal.qts.vn {
 }
 
 # Identity Center (Next.js identity app)
-identity.qts.vn {
+identity.qts.group.vn {
 	reverse_proxy localhost:3001
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -39,7 +38,7 @@ identity.qts.vn {
 }
 
 # Django REST API
-api.qts.vn {
+api.qts.group.vn {
 	reverse_proxy localhost:8000
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -50,7 +49,7 @@ api.qts.vn {
 }
 
 # Keycloak SSO (admin console + token endpoints)
-sso.qts.vn {
+sso.qts.group.vn {
 	reverse_proxy localhost:8081
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"

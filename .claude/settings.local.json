@@ -67,7 +67,14 @@
       "Bash(python /tmp/fix_api_deploy.py)",
       "Bash(python /tmp/check_api.py)",
       "Bash(python /tmp/fix_api_vol.py)",
-      "Bash(python /tmp/finish_api.py)"
+      "Bash(python /tmp/finish_api.py)",
+      "Bash(python tmp_deploy_qts_groupvn.py)",
+      "Bash(python tmp_fix_redis_db.py)",
+      "Bash(python tmp_diag_fix.py)",
+      "Bash(python tmp_inspect_volumes.py)",
+      "Bash(python tmp_recover_production_db.py)",
+      "Bash(python tmp_finish_deploy_group.py)",
+      "Bash(python tmp_resume_group.py)"
     ],
     "additionalDirectories": [
       "\\tmp"

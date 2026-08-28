@@ -49,12 +49,12 @@ services:
     volumes:
       - ./infra/keycloak:/opt/keycloak/data/import:ro
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8080"
     depends_on:
       keycloak-db-init:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && grep -q '200\\|UP' <&3"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && grep -q '200\\|UP' <&3"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -83,7 +83,7 @@ services:
       KEYCLOAK_AUDIENCE: account
       REDIS_URL: redis://redis:6379/1
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -100,7 +100,7 @@ services:
     environment:
       IDENTITY_API_ORIGIN: http://api:8000
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     depends_on:
       - api
 
@@ -111,7 +111,7 @@ services:
       dockerfile: apps/web/Dockerfile
     profiles: ["prod"]
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
@@ -131,7 +131,7 @@ services:
         VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI:-http://localhost:5174/}
     profiles: ["prod"]
     ports:
-      - "5174:80"
+      - "127.0.0.1:5174:80"
     depends_on:
       - api
 
@@ -141,7 +141,7 @@ services:
       dockerfile: apps/identity/Dockerfile
     profiles: ["prod"]
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       NODE_ENV: production
       IDENTITY_API_ORIGIN: http://api:8000

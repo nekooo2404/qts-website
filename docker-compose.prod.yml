@@ -20,7 +20,7 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
       KC_DB_SCHEMA: keycloak
-      KC_HOSTNAME: https://sso.qts.vn
+      KC_HOSTNAME: https://sso.qts.group.vn
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
 

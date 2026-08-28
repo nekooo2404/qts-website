@@ -34,13 +34,13 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:5174/auth/callback", "https://portal.qts.vn/auth/callback"],
-      "webOrigins": ["http://localhost:5174", "https://portal.qts.vn"],
+      "redirectUris": ["http://localhost:5174/auth/callback", "https://portal.qts.group.vn/auth/callback"],
+      "webOrigins": ["http://localhost:5174", "https://portal.qts.group.vn"],
       "defaultClientScopes": ["profile", "email", "roles", "web-origins", "acr", "basic"],
       "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5174/##https://portal.qts.vn/"
+        "post.logout.redirect.uris": "http://localhost:5174/##https://portal.qts.group.vn/"
       }
     }
   ],
