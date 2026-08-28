@@ -12,30 +12,32 @@ export function generateStaticParams() {
   return resourceCategories.map(({ slug }) => ({ category: slug }));
 }
 
-export function generateMetadata({ params }: { params: { category: string } }): Metadata {
-  const category = getCategory(params.category);
-  if (!category) return {};
-  return { title: `${category.label} — QTS Resources`, description: category.description };
+export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
+  const { category } = await params;
+  const cat = getCategory(category);
+  if (!cat) return {};
+  return { title: `${cat.label} — QTS Resources`, description: cat.description };
 }
 
-export default function ResourceCategoryPage({ params }: { params: { category: string } }) {
-  const category = getCategory(params.category);
-  if (!category) notFound();
-  const entries = getResourcesForCategory(category.slug);
-  const isCaseStudies = category.slug === "case-studies";
-  const isGuides = category.slug === "solutions-guides";
-  const isInsights = category.slug === "technology-insights";
-  const isPapers = category.slug === "white-papers";
-  const isUpdates = category.slug === "product-updates";
+export default async function ResourceCategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  const { category } = await params;
+  const cat = getCategory(category);
+  if (!cat) notFound();
+  const entries = getResourcesForCategory(cat.slug);
+  const isCaseStudies = cat.slug === "case-studies";
+  const isGuides = cat.slug === "solutions-guides";
+  const isInsights = cat.slug === "technology-insights";
+  const isPapers = cat.slug === "white-papers";
+  const isUpdates = cat.slug === "product-updates";
 
   return <MarketingShell>
     <section className="resource-category-hero noise">
       <div className="container">
         <Link href="/resources" className="back-link">← QTS knowledge center</Link>
-        <span className="eyebrow">{category.eyebrow}</span>
-        <h1 className="display">{category.title}</h1>
-        <p>{category.description}</p>
-        <div className="resource-category-nav">{resourceCategories.map((item) => <Link key={item.slug} href={`/resources/${item.slug}`} className={item.slug === category.slug ? "active" : ""}>{item.label}</Link>)}</div>
+        <span className="eyebrow">{cat.eyebrow}</span>
+        <h1 className="display">{cat.title}</h1>
+        <p>{cat.description}</p>
+        <div className="resource-category-nav">{resourceCategories.map((item) => <Link key={item.slug} href={`/resources/${item.slug}`} className={item.slug === cat.slug ? "active" : ""}>{item.label}</Link>)}</div>
       </div>
     </section>
 
@@ -46,7 +48,7 @@ export default function ResourceCategoryPage({ params }: { params: { category: s
     {isUpdates && <section className="section resource-context"><div className="container update-intro"><span className="live"><i /> Release channel open</span><p>Product releases are presented as operational capabilities — what changed, where it appears in the platform and the work it helps teams do better.</p></div></section>}
 
     <section className="section"><div className="container">
-      <Reveal><div className="section-heading"><span className="eyebrow">{category.label}</span><h2>{isPapers ? "Research built for the download." : isUpdates ? "A clearer view of what moved forward." : "Work built to be useful in the room."}</h2></div></Reveal>
+      <Reveal><div className="section-heading"><span className="eyebrow">{cat.label}</span><h2>{isPapers ? "Research built for the download." : isUpdates ? "A clearer view of what moved forward." : "Work built to be useful in the room."}</h2></div></Reveal>
       <Reveal delay={0.1}><ResourceCardGrid resources={entries} /></Reveal>
       {isPapers && <p className="download-note"><ArrowDownTrayIcon width={15} /> PDF downloads are provided for internal enterprise evaluation and planning.</p>}
       {isUpdates && <div className="release-notes"><span>AI automation</span><span>Decision analytics engine</span><span>Visual workflow builder</span></div>}

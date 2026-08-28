@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Geist } from "next/font/google";
-import "animate.css";
 import "./globals.css";
 import MotionProvider from "@/components/marketing/MotionProvider";
 
@@ -16,6 +15,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+        />
+      </head>
       <body className={`${geist.variable} ${inter.variable}`}>
         <MotionProvider>{children}</MotionProvider>
       </body>
