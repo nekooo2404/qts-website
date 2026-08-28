@@ -1,24 +1,60 @@
-# QTS reverse proxy (Caddy) — replace qts.example.com with real domains.
+# QTS reverse proxy (Caddy) — production domains qts.vn
 # Caddy auto-issues Let's Encrypt certs on port 443.
 # Compose ports stay localhost-only in production; edit docker-compose.yml
 # port bindings to "127.0.0.1:<port>:<port>" before going live.
 
-web.qts.example.com {
+# Marketing site (Next.js web app)
+qts.vn {
 	reverse_proxy localhost:3000
+	header {
+		# Security headers cho production
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	encode zstd gzip
 }
 
-portal.qts.example.com {
+# Portal (Vite SPA)
+portal.qts.vn {
 	reverse_proxy localhost:5174
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+	}
+	encode zstd gzip
 }
 
-identity.qts.example.com {
+# Identity Center (Next.js identity app)
+identity.qts.vn {
 	reverse_proxy localhost:3001
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+	}
+	encode zstd gzip
 }
 
-api.qts.example.com {
+# Django REST API
+api.qts.vn {
 	reverse_proxy localhost:8000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+	encode zstd gzip
 }
 
-keycloak.qts.example.com {
+# Keycloak SSO (admin console + token endpoints)
+sso.qts.vn {
 	reverse_proxy localhost:8081
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
 }
