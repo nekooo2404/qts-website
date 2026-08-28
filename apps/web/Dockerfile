@@ -52,7 +52,7 @@ COPY apps/web ./apps/web
 RUN --mount=type=cache,target=/app/apps/web/.next/cache,id=web-next-cache \
     --mount=type=cache,target=/root/.npm,id=builder-npm-web \
     cd /app/apps/web && \
-    npx next build --turbopack --no-lint
+    npx next build
 
 # ----- Stage 4: Minimal runner -----
 FROM node:20-alpine AS runner

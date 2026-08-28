@@ -22,7 +22,6 @@ const nextConfig: NextConfig = {
       "framer-motion",
       "recharts",
       "@heroicons/react",
-      "animate.css",
     ],
   },
 

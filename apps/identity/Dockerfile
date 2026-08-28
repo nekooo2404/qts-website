@@ -51,7 +51,7 @@ COPY apps/identity ./apps/identity
 RUN --mount=type=cache,target=/app/apps/identity/.next/cache,id=identity-next-cache \
     --mount=type=cache,target=/root/.npm,id=builder-npm-identity \
     cd /app/apps/identity && \
-    npx next build --turbopack --no-lint
+    npx next build
 
 # ----- Stage 4: Minimal runner -----
 FROM node:20-alpine AS runner
