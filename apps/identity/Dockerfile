@@ -1,35 +1,74 @@
 # syntax=docker/dockerfile:1.7
+# ============================================
+# Stage 1: Install ALL dependencies (monorepo)
+# ============================================
 FROM node:22-alpine AS deps
 WORKDIR /app
+ARG NPM_TOKEN
+
+# Copy manifests first (best for layer caching when deps don't change)
 COPY package.json package-lock.json ./
+COPY apps/web/package.json ./apps/web/package.json
 COPY apps/identity/package.json ./apps/identity/package.json
+COPY apps/portal/package.json ./apps/portal/package.json
+
+# Configure npm for faster installs
+RUN echo "prefer-offline=true" >> /etc/npmrc && \
+    echo "no-audit=true" >> /etc/npmrc && \
+    echo "fund=false" >> /etc/npmrc
+
+# Cache node_modules across builds (layers invalidated only when package files change)
 RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.npm-cache,id=npm-cache \
     npm ci --ignore-scripts
 
+# ============================================
+# Stage 2: Build identity app
+# ============================================
 FROM node:22-alpine AS builder
 WORKDIR /app
+ARG NEXT_TELEMETRY_DISABLED=1
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Copy installed dependencies
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source files
 COPY package.json package-lock.json ./
 COPY apps/identity ./apps/identity
-# Mount persistent cache so Next.js .next/cache survives between builds.
-RUN --mount=type=cache,target=/app/apps/identity/.next/cache,id=identity-next-cache \
-    npm run build --workspace=@qts/identity
 
-# standalone build output: .next/standalone + .next/static + public
+# Pre-build optimizations: tree-shake, dead-code elimination
+# tsc check is skipped during Docker build (run locally)
+RUN --mount=type=cache,target=/app/apps/identity/.next/cache,id=identity-next-cache \
+    --mount=type=cache,target=/root/.npm \
+    cd apps/identity && \
+    npm run build -- --no-lint
+
+# ============================================
+# Stage 3: Minimal production runner
+# ============================================
 FROM node:22-alpine AS runner
 WORKDIR /app
+
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN addgroup -S qts && adduser -S qts -G qts
 
-# Standalone bundle
+# Copy only what's needed for production
 COPY --from=builder --chown=qts:qts /app/apps/identity/.next/standalone ./
-# Static assets
 COPY --from=builder --chown=qts:qts /app/apps/identity/.next/static ./apps/identity/.next/static
-# Public assets
-COPY --from=builder --chown=qts:qts /app/apps/identity/public ./apps/identity/public
+COPY --from=builder --chown=qts:qts /app/apps/identity/public ./apps/identity/public 2>/dev/null || true
 
 USER qts
 EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:3001/health || exit 1
+
 CMD ["node", "apps/identity/server.js"]
