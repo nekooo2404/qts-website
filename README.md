@@ -86,7 +86,7 @@ VITE_PORTAL_OIDC_REDIRECT_URI=http://localhost:5174/auth/callback
 VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI=http://localhost:5174/
 ```
 
-Portal is a public PKCE client. Never place a client secret in `.env.local` or any `VITE_*` variable; Vite embeds these values in browser JavaScript. Development Keycloak admin is `admin` / `admin-local`; seeded users use `QtsDemo!2026`. Both are development-only credentials, never production credentials.
+Portal is a public PKCE client. Never place a client secret in `.env.local` or any `VITE_*` variable; Vite embeds these values in browser JavaScript. Development Keycloak admin is `admin` / `admin-local`; seeded users use the local value from `DEMO_PASSWORD`. Both are development-only credentials, never production credentials.
 
 ## API routes
 

@@ -1,6 +1,7 @@
+import os
 import uuid
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
@@ -89,11 +90,14 @@ class Command(BaseCommand):
             ("jonas@qts.com", "Jonas Lee", "Delivery director", "manager"),
             ("nora@qts.com", "Nora Lewis", "Product designer", "employee"),
         ]
+        demo_password = os.getenv("DEMO_PASSWORD")
+        if not demo_password:
+            raise CommandError("DEMO_PASSWORD is required to seed demo users.")
         memberships = []
         for email, name, title, role_code in users:
             user, created = User.objects.get_or_create(email=email, defaults={"display_name": name})
             if created:
-                user.set_password("QtsDemo!2026")
+                user.set_password(demo_password)
                 user.save(update_fields=["password"])
             if keycloak_enabled():
                 expected_id = uuid.uuid5(uuid.NAMESPACE_URL, email)
@@ -132,5 +136,4 @@ class Command(BaseCommand):
                 portal_client_id = application.client_id
 
         self.stdout.write(self.style.SUCCESS("Seeded QTS Identity."))
-        self.stdout.write("Demo password: QtsDemo!2026")
         self.stdout.write(f"QTS Portal OIDC client ID: {portal_client_id}")

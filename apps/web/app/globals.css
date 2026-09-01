@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 :root {
+  --font-geist: "Segoe UI";
+  --font-inter: "Helvetica Neue";
   --ink: #111325;
   --muted: #687087;
   --line: rgba(18, 22, 48, 0.1);

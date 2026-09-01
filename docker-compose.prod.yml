@@ -1,22 +1,33 @@
 services:
   db:
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+    ports: !reset []
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    ports: !reset []
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
 
+  keycloak-db-init:
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+
   keycloak:
+    restart: unless-stopped
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/qts
+      KC_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB required}
       KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
       KC_DB_SCHEMA: keycloak
@@ -28,6 +39,7 @@ services:
     profiles: ["dev"]
 
   api:
+    restart: unless-stopped
     environment:
       DJANGO_DEBUG: "false"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY required}
@@ -45,6 +57,7 @@ services:
       KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:?KEYCLOAK_ISSUER required}
       KEYCLOAK_INTERNAL_ISSUER: ${KEYCLOAK_INTERNAL_ISSUER:?KEYCLOAK_INTERNAL_ISSUER required}
       KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-account}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?DEMO_PASSWORD required}
       REDIS_URL: redis://redis:6379/1
     command: >-
       sh -c 'python manage.py collectstatic --noinput &&
@@ -58,3 +71,33 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import os, urllib.request;
+          host=os.environ["DJANGO_ALLOWED_HOSTS"].split(",")[0];
+          request=urllib.request.Request("http://127.0.0.1:8000/api/v1/health/", headers={"Host": host, "X-Forwarded-Proto": "https"});
+          response=urllib.request.urlopen(request, timeout=3);
+          assert response.status == 200
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web-prod:
+    restart: unless-stopped
+
+  portal-prod:
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  identity-prod:
+    restart: unless-stopped

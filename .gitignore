@@ -1,4 +1,6 @@
 node_modules/
+__pycache__/
+*.py[cod]
 .next/
 dist/
 staticfiles/
@@ -10,3 +12,6 @@ staticfiles/
 docker-compose.override.yml
 get-docker.sh
 .qts-pre-identity-migration.dump
+backups/
+tmp_*.py
+*.tsbuildinfo

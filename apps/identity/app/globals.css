@@ -1,4 +1,6 @@
 :root {
+  --font-geist: "Segoe UI";
+  --font-inter: "Helvetica Neue";
   --ink: #131427;
   --muted: #6c7088;
   --surface: #ffffff;

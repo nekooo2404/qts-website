@@ -34,7 +34,6 @@ COPY --from=manifest-identity /app/apps/identity/package.json ./apps/identity/pa
 COPY --from=manifest-identity /app/apps/portal/package.json ./apps/portal/package.json
 
 RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/node_modules,id=nm-cache-identity \
     npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
 
 # ----- Stage 3: Build -----
@@ -52,6 +51,7 @@ RUN --mount=type=cache,target=/app/apps/identity/.next/cache,id=identity-next-ca
     --mount=type=cache,target=/root/.npm,id=builder-npm-identity \
     cd /app/apps/identity && \
     npx next build
+RUN mkdir -p /app/apps/identity/public
 
 # ----- Stage 4: Minimal runner -----
 FROM node:20-alpine AS runner
@@ -69,7 +69,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 COPY --from=builder --chown=qts:qts /app/apps/identity/.next/standalone ./
 COPY --from=builder --chown=qts:qts /app/apps/identity/.next/static ./apps/identity/.next/static
-COPY --from=builder --chown=qts:qts /app/apps/identity/public ./apps/identity/public 2>/dev/null || true
+COPY --from=builder --chown=qts:qts /app/apps/identity/public ./apps/identity/public
 
 USER qts
 EXPOSE 3001

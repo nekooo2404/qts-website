@@ -7,9 +7,11 @@
 **/.git
 **/.pytest_cache
 **/.turbo
+**/*.tsbuildinfo
 *.log
 *.dump
 .env
 .env.production
 .env.local
 backups/
+tmp_*.py

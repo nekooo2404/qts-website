@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon, CheckCircleIcon, LockClosedIcon, ShieldCheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, CheckCircleIcon, LockClosedIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import MarketingShell from "@/components/marketing/MarketingShell";
 import CallToAction from "@/components/marketing/CallToAction";
 import Reveal from "@/components/marketing/Reveal";
@@ -38,7 +38,7 @@ export default function Page() {
 
     <section className="section company-culture"><div className="container"><Reveal><div className="section-heading"><span className="eyebrow">The delivery culture</span><h2>Designed in partnership. Built with technical conviction.</h2><p>Our teams make complex work visible early, challenge weak assumptions directly and stay close enough to the operation to make the platform useful on day one.</p></div></Reveal><Reveal delay={0.1}><CultureGallery /></Reveal></div></section>
 
-    <section className="section" id="leadership"><div className="container"><Reveal><div className="section-heading"><span className="eyebrow">Leadership</span><h2>People accountable for the standard.</h2><p>QTS leadership connects business context with the disciplines required to make enterprise technology durable.</p></div></Reveal><div className="leadership-grid">{leaders.map((leader, i) => <Reveal key={leader.name} delay={i * 0.1}><article className="leader-card"><div className="leader-image"><Image src={leader.image} alt={`Illustrated portrait of ${leader.name}`} fill sizes="(max-width: 700px) 100vw, 33vw" /></div><div><h3>{leader.name}</h3><span>{leader.role}</span><blockquote>"{leader.quote}"</blockquote></div></article></Reveal>)}</div></div></section>
+    <section className="section" id="leadership"><div className="container"><Reveal><div className="section-heading"><span className="eyebrow">Leadership</span><h2>People accountable for the standard.</h2><p>QTS leadership connects business context with the disciplines required to make enterprise technology durable.</p></div></Reveal><div className="leadership-grid">{leaders.map((leader, i) => <Reveal key={leader.name} delay={i * 0.1}><article className="leader-card"><div className="leader-image"><Image src={leader.image} alt={`Illustrated portrait of ${leader.name}`} fill sizes="(max-width: 700px) 100vw, 33vw" /></div><div><h3>{leader.name}</h3><span>{leader.role}</span><blockquote>&ldquo;{leader.quote}&rdquo;</blockquote></div></article></Reveal>)}</div></div></section>
 
     <section className="section company-technology" id="technology"><div className="container"><Reveal><div className="section-heading"><span className="eyebrow">Engineering credibility</span><h2>The architecture behind resilient growth.</h2><p>Modern technology choices matter only when they make the business more capable, secure and ready for change.</p></div></Reveal><Reveal delay={0.1}><div className="tech-grid">{stack.map(({ title, copy, technologies }, index) => <article className="tech-group" key={title}>{index !== 1 && <i className="arch-line" />}{index === 1 ? <div className="arch-node"><div><i className="brand-mark" /><strong>QTS Platform Core</strong><span>Composable, secure and API-first</span></div></div> : <><h3>{title}</h3><p>{copy}</p><div className="tech-stack">{technologies.map((technology) => <span className="tech-pill" key={technology}><i />{technology}</span>)}</div></>}</article>)}</div></Reveal></div></section>
 

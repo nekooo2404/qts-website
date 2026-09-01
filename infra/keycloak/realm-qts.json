@@ -53,7 +53,7 @@
       "lastName": "Harper",
       "enabled": true,
       "emailVerified": true,
-      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "credentials": [],
       "realmRoles": ["super-admin"]
     },
     {
@@ -64,7 +64,7 @@
       "lastName": "Chen",
       "enabled": true,
       "emailVerified": true,
-      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "credentials": [],
       "realmRoles": ["developer"]
     },
     {
@@ -75,7 +75,7 @@
       "lastName": "Lee",
       "enabled": true,
       "emailVerified": true,
-      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "credentials": [],
       "realmRoles": ["manager"]
     },
     {
@@ -86,7 +86,7 @@
       "lastName": "Lewis",
       "enabled": true,
       "emailVerified": true,
-      "credentials": [{ "type": "password", "value": "QtsDemo!2026", "temporary": false }],
+      "credentials": [],
       "realmRoles": ["employee"]
     }
   ]

@@ -35,7 +35,6 @@ COPY --from=manifest-web /app/apps/identity/package.json ./apps/identity/package
 COPY --from=manifest-web /app/apps/portal/package.json ./apps/portal/package.json
 
 RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/node_modules,id=nm-cache-web \
     npm ci --ignore-scripts --prefer-offline --no-audit --no-fund
 
 # ----- Stage 3: Build (Turbopack — production beta trong Next 15.5) -----
@@ -53,6 +52,7 @@ RUN --mount=type=cache,target=/app/apps/web/.next/cache,id=web-next-cache \
     --mount=type=cache,target=/root/.npm,id=builder-npm-web \
     cd /app/apps/web && \
     npx next build
+RUN mkdir -p /app/apps/web/public
 
 # ----- Stage 4: Minimal runner -----
 FROM node:20-alpine AS runner
@@ -70,7 +70,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 COPY --from=builder --chown=qts:qts /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=qts:qts /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=qts:qts /app/apps/web/public ./apps/web/public 2>/dev/null || true
+COPY --from=builder --chown=qts:qts /app/apps/web/public ./apps/web/public
 
 USER qts
 EXPOSE 3000
