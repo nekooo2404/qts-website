@@ -117,12 +117,12 @@ echo "[7/8] Start production services"
 
 echo "[8/8] Verify local service endpoints"
 wait_for_url "API" "http://127.0.0.1:8000/api/v1/health/" \
-  -H "Host: ${API_HEALTH_HOST:-api.qts.group.vn}" \
+  -H "Host: ${API_HEALTH_HOST:-api.qtsgroup.vn}" \
   -H "X-Forwarded-Proto: https"
 wait_for_url "Keycloak" "http://127.0.0.1:8081/realms/qts/.well-known/openid-configuration"
 wait_for_url "Web" "http://127.0.0.1:3000/"
 wait_for_url "Portal" "http://127.0.0.1:5174/health"
-wait_for_url "Identity" "http://127.0.0.1:3001/"
+wait_for_url "Identity" "http://127.0.0.1:3001/identity/apps"
 
 "${COMPOSE[@]}" --profile prod ps
 echo "Deploy complete for Compose project '$PROJECT_NAME'."

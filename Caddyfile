@@ -1,10 +1,20 @@
-# QTS reverse proxy (Caddy) — production domains qts.group.vn
+# QTS reverse proxy (Caddy) — production domains qtsgroup.vn
 # Caddy auto-issues Let's Encrypt certs on port 443.
 # Compose ports stay localhost-only in production.
 
-# Marketing site (Next.js web app)
-qts.group.vn, www.qts.group.vn {
-	reverse_proxy localhost:3000
+# www is not canonical — 308 to the apex so search engines see one host
+www.qtsgroup.vn {
+	redir https://qtsgroup.vn{uri} permanent
+}
+
+# Marketing site (Next.js web app) + Identity Center under /identity
+qtsgroup.vn {
+	handle /identity* {
+		reverse_proxy localhost:3001
+	}
+	handle {
+		reverse_proxy localhost:3000
+	}
 	header {
 		# Security headers cho production
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -16,7 +26,7 @@ qts.group.vn, www.qts.group.vn {
 }
 
 # Portal (Vite SPA)
-portal.qts.group.vn {
+portal.qtsgroup.vn {
 	reverse_proxy localhost:5174
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -26,19 +36,10 @@ portal.qts.group.vn {
 	encode zstd gzip
 }
 
-# Identity Center (Next.js identity app)
-identity.qts.group.vn {
-	reverse_proxy localhost:3001
-	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
-	}
-	encode zstd gzip
-}
-
-# Django REST API
-api.qts.group.vn {
+# Django REST API — admin, Swagger and the OpenAPI schema stay private
+api.qtsgroup.vn {
+	@blocked path /admin/* /api/docs/* /api/schema/*
+	respond @blocked 404
 	reverse_proxy localhost:8000
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -49,7 +50,7 @@ api.qts.group.vn {
 }
 
 # Keycloak SSO (admin console + token endpoints)
-sso.qts.group.vn {
+sso.qtsgroup.vn {
 	reverse_proxy localhost:8081
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"

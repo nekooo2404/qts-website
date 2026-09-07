@@ -31,7 +31,7 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
       KC_DB_SCHEMA: keycloak
-      KC_HOSTNAME: https://sso.qts.group.vn
+      KC_HOSTNAME: https://sso.qtsgroup.vn
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
 
@@ -41,7 +41,7 @@ services:
   api:
     restart: unless-stopped
     environment:
-      DJANGO_DEBUG: "false"
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY required}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-api.example.com}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
@@ -52,6 +52,8 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS required}
       IDENTITY_ISSUER: ${IDENTITY_ISSUER:?IDENTITY_ISSUER required}
       IDENTITY_WEB_ORIGIN: ${IDENTITY_WEB_ORIGIN:?IDENTITY_WEB_ORIGIN required}
+      PORTAL_OIDC_REDIRECT_URI: ${VITE_PORTAL_OIDC_REDIRECT_URI:?VITE_PORTAL_OIDC_REDIRECT_URI required}
+      PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI:?VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI required}
       IDENTITY_SIGNING_KEY_PASSPHRASE: ${IDENTITY_SIGNING_KEY_PASSPHRASE:? required}
       IDENTITY_PROVIDER: ${IDENTITY_PROVIDER:-keycloak}
       KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:?KEYCLOAK_ISSUER required}
@@ -63,7 +65,7 @@ services:
       sh -c 'python manage.py collectstatic --noinput &&
              python manage.py migrate --check &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile -'
-    volumes: []
+    volumes: !reset []
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:

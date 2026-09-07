@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRightIcon, BuildingOffice2Icon, KeyIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { identityPath } from "@/lib/base-path";
 import { csrfHeaders, getCsrfToken, identityFetch } from "@/lib/identity";
 
 function preserveAuthorization() {
@@ -41,7 +42,7 @@ export function SignInForm() {
         headers: csrfHeaders(csrf),
         body: JSON.stringify({ email, password }),
       });
-      window.location.assign(authorize ? `/identity-api/oauth/authorize?${authorize}` : "/apps");
+      window.location.assign(identityPath(authorize ? `/identity-api/oauth/authorize?${authorize}` : "/apps"));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Sign-in could not be completed.");
     } finally {

@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
+import { identityBasePath } from "./lib/base-path";
+
 const apiOrigin = process.env.IDENTITY_API_ORIGIN ?? "http://localhost:8000";
+const basePath = identityBasePath;
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  basePath,
 
   // ============================================
   // Build Performance (Next.js 15.5)

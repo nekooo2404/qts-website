@@ -71,7 +71,12 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
@@ -91,6 +96,14 @@ AUTH_USER_MODEL = "identity.User"
 
 IDENTITY_ISSUER = os.getenv("IDENTITY_ISSUER", "http://localhost:8000")
 IDENTITY_WEB_ORIGIN = os.getenv("IDENTITY_WEB_ORIGIN", "http://localhost:3001")
+PORTAL_OIDC_REDIRECT_URI = os.getenv(
+    "PORTAL_OIDC_REDIRECT_URI",
+    "http://localhost:5174/auth/callback",
+)
+PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI = os.getenv(
+    "PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI",
+    "http://localhost:5174/",
+)
 IDENTITY_SIGNING_KEY_PASSPHRASE = os.getenv("IDENTITY_SIGNING_KEY_PASSPHRASE", "")
 IDENTITY_TOKEN_LIFETIME_SECONDS = int(os.getenv("IDENTITY_TOKEN_LIFETIME_SECONDS", "900"))
 IDENTITY_CODE_LIFETIME_SECONDS = int(os.getenv("IDENTITY_CODE_LIFETIME_SECONDS", "120"))
@@ -135,5 +148,17 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "1000/day",
+        "consultation": "5/min",
+    },
 }
 SPECTACULAR_SETTINGS = {"TITLE": "QTS Enterprise API", "VERSION": "v1"}
+if IS_TEST:
+    # throttle tests re-enable it explicitly via @override_settings
+    REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []

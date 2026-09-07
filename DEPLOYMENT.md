@@ -29,12 +29,11 @@ Caddy is the only public listener on ports 80 and 443.
 Required DNS names:
 
 ```text
-qts.group.vn
-www.qts.group.vn
-portal.qts.group.vn
-identity.qts.group.vn
-api.qts.group.vn
-sso.qts.group.vn
+qtsgroup.vn
+www.qtsgroup.vn
+portal.qtsgroup.vn
+api.qtsgroup.vn
+sso.qtsgroup.vn
 ```
 
 ## Production environment
@@ -48,26 +47,25 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=<strong-random-password>
 
 DJANGO_SECRET_KEY=<openssl-rand-hex-32>
-DJANGO_ALLOWED_HOSTS=api.qts.group.vn
-CORS_ALLOWED_ORIGINS=https://qts.group.vn,https://portal.qts.group.vn,https://identity.qts.group.vn
-IDENTITY_ISSUER=https://api.qts.group.vn
-IDENTITY_WEB_ORIGIN=https://identity.qts.group.vn
+DJANGO_ALLOWED_HOSTS=api.qtsgroup.vn,qtsgroup.vn,www.qtsgroup.vn,api
+CORS_ALLOWED_ORIGINS=https://qtsgroup.vn,https://www.qtsgroup.vn,https://portal.qtsgroup.vn
+IDENTITY_ISSUER=https://api.qtsgroup.vn
+IDENTITY_WEB_ORIGIN=https://qtsgroup.vn/identity
 IDENTITY_SIGNING_KEY_PASSPHRASE=<openssl-rand-hex-32>
 IDENTITY_PROVIDER=keycloak
-KEYCLOAK_ISSUER=https://sso.qts.group.vn/realms/qts
+KEYCLOAK_ISSUER=https://sso.qtsgroup.vn/realms/qts
 KEYCLOAK_INTERNAL_ISSUER=http://keycloak:8080/realms/qts
 KEYCLOAK_AUDIENCE=account
 KC_BOOTSTRAP_ADMIN_USERNAME=admin
 KC_BOOTSTRAP_ADMIN_PASSWORD=<strong-random-password>
 DEMO_PASSWORD=<strong-random-password>
 
-NEXT_PUBLIC_API_URL=https://api.qts.group.vn
-VITE_IDENTITY_ISSUER=https://sso.qts.group.vn/realms/qts
-VITE_API_ISSUER=https://api.qts.group.vn
+VITE_IDENTITY_ISSUER=https://sso.qtsgroup.vn/realms/qts
+VITE_API_ISSUER=https://api.qtsgroup.vn
 VITE_PORTAL_OIDC_CLIENT_ID=qts-portal
-VITE_IDENTITY_WEB_ORIGIN=https://identity.qts.group.vn
-VITE_PORTAL_OIDC_REDIRECT_URI=https://portal.qts.group.vn/auth/callback
-VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI=https://portal.qts.group.vn/
+VITE_IDENTITY_WEB_ORIGIN=https://qtsgroup.vn/identity
+VITE_PORTAL_OIDC_REDIRECT_URI=https://portal.qtsgroup.vn/auth/callback
+VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI=https://portal.qtsgroup.vn/
 ```
 
 ## Deploy
@@ -98,19 +96,19 @@ backup stops the deployment.
 docker compose -p qtsss --env-file .env.production \
   -f docker-compose.yml -f docker-compose.prod.yml --profile prod ps
 
-curl -fsS -H 'Host: api.qts.group.vn' -H 'X-Forwarded-Proto: https' \
+curl -fsS -H 'Host: api.qtsgroup.vn' -H 'X-Forwarded-Proto: https' \
   http://127.0.0.1:8000/api/v1/health/
 curl -fsS http://127.0.0.1:8081/realms/qts/.well-known/openid-configuration >/dev/null
 curl -fsS http://127.0.0.1:3000/ >/dev/null
 curl -fsS http://127.0.0.1:5174/health
-curl -fsS http://127.0.0.1:3001/ >/dev/null
+curl -fsS http://127.0.0.1:3001/identity/apps >/dev/null
 ```
 
 Verify DNS before expecting Caddy to issue certificates:
 
 ```bash
-for host in qts.group.vn www.qts.group.vn portal.qts.group.vn \
-  identity.qts.group.vn api.qts.group.vn sso.qts.group.vn; do
+for host in qtsgroup.vn www.qtsgroup.vn portal.qtsgroup.vn \
+  api.qtsgroup.vn sso.qtsgroup.vn; do
   getent ahostsv4 "$host" | awk -v host="$host" 'NR == 1 { print host, $1 }'
 done
 ```

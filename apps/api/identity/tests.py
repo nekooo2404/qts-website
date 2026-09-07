@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlparse
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.core.cache import cache
+from django.core.management import call_command
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -27,6 +28,31 @@ from .models import (
     User,
 )
 from .services import effective_permissions, issue_authorization_code
+
+
+class SeedIdentityCommandTest(TestCase):
+    @override_settings(
+        IDENTITY_PROVIDER="local",
+        PORTAL_OIDC_REDIRECT_URI="https://portal.test/auth/callback",
+        PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI="https://portal.test/",
+    )
+    @patch.dict("os.environ", {"DEMO_PASSWORD": "A-secure-password"})
+    def test_reseed_updates_portal_redirect_uris_from_settings(self):
+        call_command("seed_identity")
+        application = Application.objects.get(slug="qts-portal")
+        application.redirect_uris = [
+            "http://localhost:5174/auth/callback",
+            "http://localhost:5174/",
+        ]
+        application.save(update_fields=["redirect_uris"])
+
+        call_command("seed_identity")
+
+        application.refresh_from_db()
+        self.assertEqual(
+            application.redirect_uris,
+            ["https://portal.test/auth/callback", "https://portal.test/"],
+        )
 
 
 @override_settings(IDENTITY_ISSUER="https://identity.test", IDENTITY_WEB_ORIGIN="http://identity.test")

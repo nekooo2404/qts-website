@@ -1,3 +1,5 @@
+import { identityPath } from "@/lib/base-path";
+
 export type IdentitySession = {
   authenticated: boolean;
   user: { id: string; email: string; name: string };
@@ -27,7 +29,7 @@ export type SecurityOverview = {
   connected_applications: number;
 };
 
-const api = "/identity-api";
+const api = identityPath("/identity-api");
 
 export async function identityFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${api}${path}`, {

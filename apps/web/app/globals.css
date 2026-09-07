@@ -299,6 +299,10 @@ a { color: inherit; text-decoration: none; }
 .field input,.field textarea { width:100%; padding:11px 12px; resize:vertical; border:1px solid #dcdee8; border-radius:9px; color:#2e3046; outline:none; font-size:13px; font-weight:500; transition:.2s ease; }
 .field input:focus,.field textarea:focus { border-color:#6c6be6; box-shadow:0 0 0 3px rgba(91,92,239,.12); }
 .form-error { margin:0; color:#c54355; font-size:11px; }
+/* Honeypot: off-screen, never display:none (bots skip hidden fields) */
+.hp-field { position:absolute !important; left:-9999px; width:1px; height:1px; margin:0; padding:0; opacity:0; overflow:hidden; }
+.consent-row { display:flex; align-items:flex-start; gap:9px; color:#4f5268; font-size:11px; font-weight:500; line-height:1.5; }
+.consent-row input { width:15px; height:15px; margin:1px 0 0; flex:0 0 auto; accent-color:var(--violet); }
 .form-success { padding:14px; border-radius:10px; background:#eafaf5; color:#228461; font-size:12px; line-height:1.45; }
 
 .nav-link.active { color:#34327a; font-weight:700; }

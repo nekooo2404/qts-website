@@ -1,6 +1,7 @@
 import os
 import uuid
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -53,7 +54,8 @@ ROLE_PERMISSIONS = {
 }
 
 APPLICATIONS = [
-    ("qts-portal", "QTS Portal", "Enterprise operating workspace", ["portal.view_dashboard"], ["http://localhost:5174/auth/callback", "http://localhost:5174/"]),
+    # qts-portal uses the configured production values when the command runs.
+    ("qts-portal", "QTS Portal", "Enterprise operating workspace", ["portal.view_dashboard"], None),
     ("qts-crm", "QTS CRM", "Customer relationships and pipeline", ["crm.view_customer"], ["http://localhost:5174/crm/callback"]),
     ("qts-erp", "QTS ERP", "Operations, finance and planning", ["finance.view_invoice"], ["http://localhost:5174/erp/callback"]),
     ("qts-hr", "QTS HR", "People and organizational health", ["hr.view_people"], ["http://localhost:5174/hr/callback"]),
@@ -110,6 +112,11 @@ class Command(BaseCommand):
 
         portal_client_id = ""
         for slug, name, description, required_permissions, redirect_uris in APPLICATIONS:
+            if slug == "qts-portal":
+                redirect_uris = [
+                    settings.PORTAL_OIDC_REDIRECT_URI,
+                    settings.PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI,
+                ]
             defaults = {
                 "name": name,
                 "description": description,

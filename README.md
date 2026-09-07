@@ -91,7 +91,6 @@ Portal is a public PKCE client. Never place a client secret in `.env.local` or a
 ## API routes
 
 - `GET /api/v1/health/` — service health
-- `GET /api/v1/overview/` — QTS operating overview
 - `POST /api/v1/leads/consultation/` — public consultation lead
 - `GET /api/schema/` and `GET /api/docs/` — OpenAPI schema and Swagger UI
 

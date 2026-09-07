@@ -33,6 +33,13 @@ const nextConfig: NextConfig = {
     reactRemoveProperties: true,
   },
 
+  poweredByHeader: false,
+
+  async rewrites() {
+    const api = process.env.API_INTERNAL_ORIGIN ?? "http://api:8000";
+    return [{ source: "/api/:path*", destination: `${api}/api/:path*` }];
+  },
+
   // Cache headers cho static assets
   async headers() {
     return [
