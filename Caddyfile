@@ -4,11 +4,14 @@
 
 # www is not canonical — 308 to the apex so search engines see one host
 www.qtsgroup.vn {
-	redir https://qtsgroup.vn{uri} permanent
+	redir https://qtsgroup.vn{uri} 308
 }
 
 # Marketing site (Next.js web app) + Identity Center under /identity
 qtsgroup.vn {
+	handle /api/* {
+		reverse_proxy localhost:8000
+	}
 	handle /identity* {
 		reverse_proxy localhost:3001
 	}
