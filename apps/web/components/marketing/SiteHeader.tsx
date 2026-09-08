@@ -28,8 +28,12 @@ const researchLinks = [
   { label: "Transformation report", href: "/resources/white-papers", copy: "Enterprise Digital Transformation Report 2026." },
 ];
 
-export function QtsMark() {
-  return <span className="brand-mark" aria-hidden="true" />;
+export function QtsMark({ className = "" }: { className?: string }) {
+  return (
+    <span className={`qts-mark ${className}`.trim()} aria-hidden="true">
+      <Image src="/images/brand/qts-logo.webp" alt="" width={512} height={512} sizes="48px" priority />
+    </span>
+  );
 }
 
 export function Brand({ dark = false }: { dark?: boolean }) {
