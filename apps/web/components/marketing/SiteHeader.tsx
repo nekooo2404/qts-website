@@ -10,22 +10,22 @@ import { featuredResource } from "@/components/marketing/resources/catalog";
 import { megaMenu } from "@/lib/motion";
 
 const navigation = [
-  { label: "Solutions", href: "/solutions" },
-  { label: "Platform", href: "/platform" },
-  { label: "Industries", href: "/industries" },
-  { label: "Company", href: "/company" },
+  { label: "Giải pháp", href: "/solutions" },
+  { label: "Nền tảng", href: "/platform" },
+  { label: "Ngành", href: "/industries" },
+  { label: "Công ty", href: "/company" },
 ];
 
 const exploreLinks = [
-  { label: "Case studies", href: "/resources/case-studies", copy: "Enterprise outcomes and measurable returns." },
-  { label: "Solutions guides", href: "/resources/solutions-guides", copy: "Playbooks for scalable platforms and operations." },
-  { label: "Technology insights", href: "/resources/technology-insights", copy: "Perspective on AI, cloud and enterprise architecture." },
+  { label: "Tình huống ứng dụng", href: "/resources/case-studies", copy: "Mô hình tham khảo cho các bài toán vận hành doanh nghiệp." },
+  { label: "Hướng dẫn giải pháp", href: "/resources/solutions-guides", copy: "Cẩm nang xây dựng nền tảng và quy trình có khả năng mở rộng." },
+  { label: "Góc nhìn công nghệ", href: "/resources/technology-insights", copy: "Phân tích về AI, đám mây và kiến trúc doanh nghiệp." },
 ];
 
 const researchLinks = [
-  { label: "White papers", href: "/resources/white-papers", copy: "Research for long-horizon platform decisions." },
-  { label: "Product updates", href: "/resources/product-updates", copy: "What is new in the QTS platform." },
-  { label: "Transformation report", href: "/resources/white-papers", copy: "Enterprise Digital Transformation Report 2026." },
+  { label: "Chuyên khảo", href: "/resources/white-papers", copy: "Tài liệu phục vụ quyết định đầu tư nền tảng dài hạn." },
+  { label: "Cập nhật sản phẩm", href: "/resources/product-updates", copy: "Thông tin mới về nền tảng QTS." },
+  { label: "Báo cáo chuyển đổi số", href: "/resources/white-papers", copy: "Báo cáo Chuyển đổi số Doanh nghiệp 2026." },
 ];
 
 export function QtsMark({ className = "" }: { className?: string }) {
@@ -37,7 +37,7 @@ export function QtsMark({ className = "" }: { className?: string }) {
 }
 
 export function Brand({ dark = false }: { dark?: boolean }) {
-  return <Link href="/" className={`brand ${dark ? "brand-dark" : ""}`} aria-label="QTS home"><QtsMark />QTS</Link>;
+  return <Link href="/" className={`brand ${dark ? "brand-dark" : ""}`} aria-label="Trang chủ QTS"><QtsMark />QTS</Link>;
 }
 
 export default function SiteHeader() {
@@ -61,7 +61,6 @@ export default function SiteHeader() {
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => setResourcesOpen(false), [pathname]);
 
-  // Close mega menu on outside click or Escape
   useEffect(() => {
     if (!resourcesOpen) return;
     function handlePointer(event: MouseEvent) {
@@ -81,7 +80,6 @@ export default function SiteHeader() {
     };
   }, [resourcesOpen]);
 
-  // Mobile overlay: lock scroll, focus first link, Escape closes
   useEffect(() => {
     if (!open) return;
     document.body.style.overflow = "hidden";
@@ -115,11 +113,11 @@ export default function SiteHeader() {
   return <header className={`nav ${scrolled ? "scrolled" : ""}`}>
     <div className="container nav-inner">
       <Brand />
-      <nav className="nav-links" aria-label="Primary navigation">
+      <nav className="nav-links" aria-label="Điều hướng chính">
         {navigation.slice(0, 3).map((item) => <Link key={item.href} href={item.href} className={`nav-link ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}
         <div className="nav-mega-wrap" ref={resourcesRef} onMouseEnter={openMega} onMouseLeave={closeMega}>
           <button ref={resourcesButtonRef} type="button" className={`nav-link nav-mega-trigger ${resourcesActive ? "active" : ""} ${resourcesOpen ? "open" : ""}`} aria-expanded={resourcesOpen} aria-controls="resources-mega-menu" onClick={() => setResourcesOpen((value) => !value)}>
-            Resources <ChevronDownIcon width={12} aria-hidden="true" />
+            Tài nguyên <ChevronDownIcon width={12} aria-hidden="true" />
           </button>
           <AnimatePresence>
             {resourcesOpen && (
@@ -127,7 +125,7 @@ export default function SiteHeader() {
                 id="resources-mega-menu"
                 className="nav-mega open"
                 role="region"
-                aria-label="Resources menu"
+                aria-label="Trình đơn tài nguyên"
                 variants={megaMenu}
                 initial="hidden"
                 animate="visible"
@@ -135,22 +133,22 @@ export default function SiteHeader() {
               >
                 <div className="nav-mega-grid">
                   <div>
-                    <span className="nav-mega-label">Explore</span>
+                    <span className="nav-mega-label">Khám phá</span>
                     {exploreLinks.map((item) => <Link key={item.href} href={item.href} className="nav-mega-link"><b>{item.label}</b><small>{item.copy}</small></Link>)}
-                    <Link href="/resources" className="nav-mega-foot">View all resources →</Link>
+                    <Link href="/resources" className="nav-mega-foot">Xem tất cả tài nguyên →</Link>
                   </div>
                   <div>
-                    <span className="nav-mega-label">Research</span>
+                    <span className="nav-mega-label">Nghiên cứu</span>
                     {researchLinks.map((item) => <Link key={item.label} href={item.href} className="nav-mega-link"><b>{item.label}</b><small>{item.copy}</small></Link>)}
                   </div>
                   <Link href={featuredResource.href} className="nav-mega-feature">
-                    <span className="nav-mega-kicker">Featured story</span>
+                    <span className="nav-mega-kicker">Nội dung nổi bật</span>
                     <span className="nav-mega-feature-cover" aria-hidden="true">
                       <Image src="/images/resources/manufacturing-operations.svg" alt="" fill sizes="360px" />
                     </span>
                     <strong>{featuredResource.title}</strong>
-                    <span>ABC Manufacturing Group · {featuredResource.outcome} · -60% manual reporting</span>
-                    <small>Read the story →</small>
+                    <span>{featuredResource.description}</span>
+                    <small>Xem nội dung →</small>
                   </Link>
                 </div>
               </motion.div>
@@ -159,13 +157,12 @@ export default function SiteHeader() {
         </div>
         {navigation.slice(3).map((item) => <Link key={item.href} href={item.href} className={`nav-link ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}
       </nav>
-      <Link className="btn btn-dark nav-cta" href="/contact">Request consultation</Link>
-      <button ref={menuButtonRef} className="nav-menu" type="button" aria-label="Toggle navigation" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <Link className="btn btn-dark nav-cta" href="/contact">Yêu cầu tư vấn</Link>
+      <button ref={menuButtonRef} className="nav-menu" type="button" aria-label="Mở hoặc đóng điều hướng" aria-expanded={open} onClick={() => setOpen(!open)}>
         {open ? <XMarkIcon width={22} /> : <Bars3Icon width={22} />}
       </button>
     </div>
 
-    {/* Full-screen mobile overlay */}
     <AnimatePresence>
       {open && (
         <motion.div
@@ -175,11 +172,11 @@ export default function SiteHeader() {
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", stiffness: 300, damping: 32 }}
-          aria-label="Mobile navigation"
+          aria-label="Điều hướng trên thiết bị di động"
         >
           <div className="mobile-overlay-top">
             <Brand />
-            <button type="button" aria-label="Close menu" onClick={() => { setOpen(false); menuButtonRef.current?.focus(); }}>
+            <button type="button" aria-label="Đóng trình đơn" onClick={() => { setOpen(false); menuButtonRef.current?.focus(); }}>
               <XMarkIcon width={24} />
             </button>
           </div>
@@ -189,7 +186,6 @@ export default function SiteHeader() {
                 <Link href={item.href} className="mobile-overlay-link">{item.label}</Link>
               </motion.div>
             ))}
-            {/* Resources accordion */}
             <MobileAccordion links={allMobileLinks} />
             {navigation.slice(3).map((item, i) => (
               <motion.div key={item.href} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.06 }}>
@@ -198,7 +194,7 @@ export default function SiteHeader() {
             ))}
           </nav>
           <div className="mobile-overlay-cta">
-            <Link className="btn btn-primary" href="/contact">Request consultation</Link>
+            <Link className="btn btn-primary" href="/contact">Yêu cầu tư vấn</Link>
           </div>
         </motion.div>
       )}
@@ -211,12 +207,12 @@ function MobileAccordion({ links }: { links: { label: string; href: string }[] }
   return (
     <div className="mobile-accordion">
       <button type="button" className={`mobile-accordion-trigger ${expanded ? "open" : ""}`} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
-        Resources <ChevronDownIcon width={14} aria-hidden="true" />
+        Tài nguyên <ChevronDownIcon width={14} aria-hidden="true" />
       </button>
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div className="mobile-accordion-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
-            <Link href="/resources">All resources</Link>
+            <Link href="/resources">Tất cả tài nguyên</Link>
             {links.map((item) => <Link key={item.label} href={item.href}>{item.label}</Link>)}
           </motion.div>
         )}

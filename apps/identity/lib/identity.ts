@@ -39,7 +39,7 @@ export async function identityFetch<T>(path: string, init: RequestInit = {}): Pr
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.error_description ?? "The identity request could not be completed.");
+    throw new Error(body.error_description ?? "Không thể hoàn tất yêu cầu định danh.");
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -102,6 +102,6 @@ export async function authorizeUrl(clientId: string, redirectUri: string, scopes
 }
 
 export function dateTime(value: string | null) {
-  if (!value) return "Not yet opened";
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+  if (!value) return "Chưa từng mở";
+  return new Intl.DateTimeFormat("vi-VN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }

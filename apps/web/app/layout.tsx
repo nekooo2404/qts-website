@@ -4,14 +4,14 @@ import "./globals.css";
 import MotionProvider from "@/components/marketing/MotionProvider";
 
 export const metadata: Metadata = {
-  title: "QTS — Digital infrastructure for enterprise growth",
+  title: "QTS — Hạ tầng số cho tăng trưởng doanh nghiệp",
   description:
-    "QTS builds scalable software platforms, enterprise applications and intelligent digital ecosystems.",
+    "QTS phát triển nền tảng phần mềm, ứng dụng doanh nghiệp và hệ sinh thái số thông minh có khả năng mở rộng.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body>
         <MotionProvider>{children}</MotionProvider>
       </body>

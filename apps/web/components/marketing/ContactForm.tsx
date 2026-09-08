@@ -35,7 +35,7 @@ export default function ContactForm() {
 
     if (!payload.consent) {
       setStatus("error");
-      setError("Please agree to the privacy terms before submitting.");
+      setError("Vui lòng đồng ý với điều khoản bảo mật trước khi gửi.");
       setShakeKey((k) => k + 1);
       return;
     }
@@ -52,7 +52,7 @@ export default function ContactForm() {
         body?.error?.message ??
         (body?.email?.[0] as string) ??
         (body?.message?.[0] as string) ??
-        "The QTS API is unavailable right now. Please try again shortly.";
+        "API QTS hiện chưa khả dụng. Vui lòng thử lại sau ít phút.";
       setStatus("error");
       setError(msg);
       setShakeKey((k) => k + 1);
@@ -73,10 +73,9 @@ export default function ContactForm() {
           <circle cx="26" cy="26" r="24" />
           <path d="M14 27l8 8 16-16" />
         </svg>
-        <b>Request received.</b>
+        <b>Đã tiếp nhận yêu cầu.</b>
         <br />
-        Your QTS consultation is in motion. We will use the details you shared to make the
-        conversation useful from the first minute.
+        QTS sẽ sử dụng thông tin bạn chia sẻ để chuẩn bị cho buổi trao đổi phù hợp với nhu cầu.
       </motion.div>
     );
 
@@ -87,24 +86,23 @@ export default function ContactForm() {
       <div className="form-pair">
         <div className="field-float">
           <input required name="email" type="email" id="cf-email" placeholder=" " />
-          <label htmlFor="cf-email">Work email</label>
+          <label htmlFor="cf-email">Email công việc</label>
         </div>
         <div className="field-float">
           <input required name="name" type="text" id="cf-name" placeholder=" " />
-          <label htmlFor="cf-name">Full name</label>
+          <label htmlFor="cf-name">Họ và tên</label>
         </div>
       </div>
       <div className="field-float">
         <input required name="company" type="text" id="cf-company" placeholder=" " />
-        <label htmlFor="cf-company">Company</label>
+        <label htmlFor="cf-company">Doanh nghiệp</label>
       </div>
       <div className="field-float">
         <textarea required name="message" rows={5} id="cf-message" placeholder=" " />
-        <label htmlFor="cf-message">What are you building?</label>
+        <label htmlFor="cf-message">Bạn đang cần xây dựng điều gì?</label>
       </div>
       <label className="consent-row">
-        <input type="checkbox" name="consent" required /> I agree to the processing of my data for
-        the purpose of this consultation request.
+        <input type="checkbox" name="consent" required /> Tôi đồng ý cho QTS xử lý dữ liệu để phản hồi yêu cầu tư vấn này.
       </label>
       {status === "error" && <p className="form-error">{error}</p>}
       <button
@@ -112,7 +110,7 @@ export default function ContactForm() {
         disabled={status === "sending"}
         type="submit"
       >
-        {status === "sending" ? "Sending request…" : "Request consultation"}
+        {status === "sending" ? "Đang gửi yêu cầu…" : "Yêu cầu tư vấn"}
         <ArrowRightIcon width={15} />
       </button>
     </form>

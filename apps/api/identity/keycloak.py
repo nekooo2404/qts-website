@@ -37,9 +37,9 @@ def fetch_jwks(*, force=False):
         response.raise_for_status()
         key_set = response.json()
     except (requests.RequestException, ValueError) as error:
-        raise IdentityError("invalid_token", "The token signing keys are unavailable.", 401) from error
+        raise IdentityError("invalid_token", "Không tải được khóa ký token.", 401) from error
     if not isinstance(key_set, dict) or not isinstance(key_set.get("keys"), list):
-        raise IdentityError("invalid_token", "The token signing keys are invalid.", 401)
+        raise IdentityError("invalid_token", "Khóa ký token không hợp lệ.", 401)
     cache.set(key, key_set, timeout=settings.KEYCLOAK_JWKS_CACHE_SECONDS)
     return key_set
 
@@ -48,9 +48,9 @@ def signing_jwk(raw_token):
     try:
         header = jwt.get_unverified_header(raw_token)
     except jwt.PyJWTError as error:
-        raise IdentityError("invalid_token", "The token is invalid or expired.", 401) from error
+        raise IdentityError("invalid_token", "Token không hợp lệ hoặc đã hết hạn.", 401) from error
     if header.get("alg") != "RS256" or not isinstance(header.get("kid"), str):
-        raise IdentityError("invalid_token", "The token signing algorithm is not permitted.", 401)
+        raise IdentityError("invalid_token", "Không được phép sử dụng thuật toán ký token.", 401)
 
     def matching_key(key_set):
         return next(
@@ -66,7 +66,7 @@ def signing_jwk(raw_token):
     if not jwk:
         jwk = matching_key(fetch_jwks(force=True))
     if not jwk:
-        raise IdentityError("invalid_token", "The token signing key is not recognized.", 401)
+        raise IdentityError("invalid_token", "Không nhận dạng được khóa ký token.", 401)
     return jwk
 
 
@@ -83,16 +83,16 @@ def decode_token(raw_token):
         )
         subject = uuid.UUID(str(claims["sub"]))
     except (KeyError, TypeError, ValueError, jwt.PyJWTError) as error:
-        raise IdentityError("invalid_token", "The token is invalid or expired.", 401) from error
+        raise IdentityError("invalid_token", "Token không hợp lệ hoặc đã hết hạn.", 401) from error
 
     user = User.objects.filter(keycloak_id=subject, is_active=True).first()
     if not user:
-        raise IdentityError("invalid_token", "The token subject is not available.", 401)
+        raise IdentityError("invalid_token", "Không có người dùng tương ứng với token.", 401)
     tenant = resolve_tenant(user.email)
     if not tenant:
-        raise IdentityError("invalid_token", "The token organization is not available.", 401)
+        raise IdentityError("invalid_token", "Không có tổ chức tương ứng với token.", 401)
     try:
         membership = membership_for(user, tenant)
     except IdentityError as error:
-        raise IdentityError("invalid_token", "The token subject is not available.", 401) from error
+        raise IdentityError("invalid_token", "Không có người dùng tương ứng với token.", 401) from error
     return claims, None, membership

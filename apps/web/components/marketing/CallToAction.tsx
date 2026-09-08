@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Reveal from "./Reveal";
 
-export default function CallToAction({ title = "Build the next advantage.", copy = "Tell us what your organization is solving. A QTS expert will be in touch within one business day." }: { title?: string; copy?: string }) {
+export default function CallToAction({ title = "Xây dựng lợi thế số tiếp theo.", copy = "Chia sẻ bài toán doanh nghiệp đang cần giải quyết. QTS sẽ phản hồi trong ngày làm việc." }: { title?: string; copy?: string }) {
   return <section className="cta-band"><div className="container cta-inner">
     <Reveal><div className="cta-copy"><h2>{title}</h2><p>{copy}</p></div></Reveal>
-    <Reveal delay={0.15}><Link href="/contact" className="btn btn-light">Request consultation</Link></Reveal>
+    <Reveal delay={0.15}><Link href="/contact" className="btn btn-light">Yêu cầu tư vấn</Link></Reveal>
   </div></section>;
 }

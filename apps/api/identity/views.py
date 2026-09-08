@@ -47,7 +47,7 @@ def request_data(request):
         try:
             return json.loads(request.body or "{}")
         except json.JSONDecodeError:
-            raise IdentityError("invalid_request", "The request body must be valid JSON.")
+            raise IdentityError("invalid_request", "Nội dung yêu cầu phải là JSON hợp lệ.")
     if request.POST:
         return request.POST
     return request.data
@@ -67,7 +67,7 @@ def active_session(request):
 def bearer_context(request):
     authorization = request.headers.get("Authorization", "")
     if not authorization.startswith("Bearer "):
-        raise IdentityError("invalid_token", "A bearer access token is required.", 401)
+        raise IdentityError("invalid_token", "Bắt buộc có bearer access token.", 401)
     raw_token = authorization.removeprefix("Bearer ").strip()
     if settings.IDENTITY_PROVIDER == "keycloak":
         from .keycloak import decode_token as decode_keycloak_token
@@ -87,7 +87,7 @@ def authenticated_context(request):
         return decode_token(raw_token)
     session = active_session(request)
     if not session:
-        raise IdentityError("unauthorized", "Sign in to continue.", 401)
+        raise IdentityError("unauthorized", "Vui lòng đăng nhập để tiếp tục.", 401)
     membership = membership_for(session.user, session.tenant)
     return {}, session, membership
 
@@ -95,7 +95,7 @@ def authenticated_context(request):
 def require_permission(request, permission):
     _payload, _session, membership = authenticated_context(request)
     if permission not in effective_permissions(membership):
-        raise IdentityError("insufficient_scope", "This action is not permitted.", 403)
+        raise IdentityError("insufficient_scope", "Bạn không được phép thực hiện hành động này.", 403)
     return membership
 
 
@@ -175,7 +175,7 @@ def authorize(request):
         return HttpResponseRedirect(append_query(redirect_uri, {"code": code, "state": request.GET.get("state")}))
     except (IdentityError, ValueError) as error:
         if isinstance(error, ValueError):
-            error = IdentityError("invalid_request", "The authorization request is invalid.")
+            error = IdentityError("invalid_request", "Yêu cầu ủy quyền không hợp lệ.")
         redirect_uri = request.GET.get("redirect_uri")
         if redirect_uri:
             application = Application.objects.filter(client_id=request.GET.get("client_id", "")).first()
@@ -195,13 +195,13 @@ def sign_in(request):
         throttle_key = f"identity:login:{request.META.get('REMOTE_ADDR', '')}:{email}"
         attempts = cache.get(throttle_key, 0)
         if attempts >= 8:
-            raise IdentityError("temporarily_unavailable", "Sign-in is temporarily unavailable. Try again later.", 429)
+            raise IdentityError("temporarily_unavailable", "Đăng nhập tạm thời không khả dụng. Vui lòng thử lại sau.", 429)
         tenant = resolve_tenant(email)
         user = authenticate(request, email=email, password=password)
         if not user or not tenant:
             cache.set(throttle_key, attempts + 1, timeout=900)
             audit(request, "identity.login.failed", outcome="failure", metadata={"identifier_hash": str(hash(email))})
-            raise IdentityError("invalid_credentials", "The email or password is not recognized.", 401)
+            raise IdentityError("invalid_credentials", "Không nhận dạng được email hoặc mật khẩu.", 401)
         membership_for(user, tenant)
         session = create_identity_session(user, tenant, request, ["pwd"])
         login(request, user)
@@ -230,10 +230,10 @@ def token(request):
         client_id = data.get("client_id", "")
         application = Application.objects.filter(client_id=client_id, is_active=True).first()
         if not application:
-            raise IdentityError("invalid_client", "The client is not recognized.", 401)
+            raise IdentityError("invalid_client", "Không nhận dạng được client.", 401)
         supplied_secret = data.get("client_secret") or request.headers.get("X-QTS-Client-Secret", "")
         if not application.is_public and not application.check_secret(supplied_secret):
-            raise IdentityError("invalid_client", "Client authentication failed.", 401)
+            raise IdentityError("invalid_client", "Xác thực client thất bại.", 401)
         grant_type = data.get("grant_type")
         if grant_type == "authorization_code":
             code = consume_authorization_code(
@@ -254,7 +254,7 @@ def token(request):
         if grant_type == "refresh_token":
             token_set = rotate_refresh_token(data.get("refresh_token", ""), application)
             return Response(token_set)
-        raise IdentityError("unsupported_grant_type", "Only authorization_code and refresh_token are supported.")
+        raise IdentityError("unsupported_grant_type", "Chỉ hỗ trợ authorization_code và refresh_token.")
     except IdentityError as error:
         return Response({"error": error.code, "error_description": error.description}, status=error.status)
 
@@ -342,7 +342,7 @@ def sessions(request):
         items = IdentitySession.objects.filter(user=session.user, tenant=session.tenant).order_by("-last_seen_at")
         return Response({"sessions": [{
             "id": str(item.id), "current": item.id == session.id, "user_agent": item.user_agent,
-            "location": item.location or "Unknown location", "last_seen_at": item.last_seen_at,
+            "location": item.location or "Vị trí không xác định", "last_seen_at": item.last_seen_at,
             "auth_time": item.auth_time, "amr": item.authentication_methods,
         } for item in items if item.is_active]})
     except IdentityError as error:
@@ -356,10 +356,10 @@ def revoke_session(request, session_id):
     try:
         _payload, current, membership = bearer_context(request)
         if current is None:
-            raise IdentityError("not_found", "Sessions are managed by Keycloak.", 404)
+            raise IdentityError("not_found", "Các phiên đăng nhập do Keycloak quản lý.", 404)
         target = IdentitySession.objects.filter(id=session_id, tenant=membership.tenant).first()
         if not target or (target.user_id != current.user_id and "identity.manage_users" not in effective_permissions(membership)):
-            raise IdentityError("not_found", "The session was not found.", 404)
+            raise IdentityError("not_found", "Không tìm thấy phiên đăng nhập.", 404)
         target.revoke("remote_logout")
         audit(request, "identity.session.revoked", tenant=membership.tenant, actor=current.user, target=target)
         return Response(status=204)
@@ -417,7 +417,7 @@ def audit_events(request):
         events = AuditEvent.objects.filter(tenant=membership.tenant).select_related("actor")[:100]
         return Response({"events": [{
             "id": str(event.id), "action": event.action, "outcome": event.outcome,
-            "actor": event.actor.email if event.actor else "System", "created_at": event.created_at,
+            "actor": event.actor.email if event.actor else "Hệ thống", "created_at": event.created_at,
             "target_type": event.target_type, "target_id": event.target_id,
         } for event in events]})
     except IdentityError as error:

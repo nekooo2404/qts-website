@@ -44,9 +44,9 @@ async function discover(): Promise<OpenIdConfiguration> {
   if (!discoveryPromise) {
     discoveryPromise = fetch(`${identityIssuer}/.well-known/openid-configuration`, { headers: { Accept: "application/json" } })
       .then(async response => {
-        if (!response.ok) throw new Error("The identity discovery document could not be loaded.");
+        if (!response.ok) throw new Error("Không thể tải tài liệu khám phá định danh.");
         const document = await response.json() as OpenIdConfiguration;
-        if (!document.authorization_endpoint || !document.token_endpoint) throw new Error("The identity discovery document is incomplete.");
+        if (!document.authorization_endpoint || !document.token_endpoint) throw new Error("Tài liệu khám phá định danh chưa đầy đủ.");
         return document;
       })
       .catch(error => {
@@ -64,7 +64,7 @@ export const identityWebOrigin = (import.meta.env.VITE_IDENTITY_WEB_ORIGIN ?? "h
 function portalClientId() {
   const clientId = import.meta.env.VITE_PORTAL_OIDC_CLIENT_ID;
   if (!clientId) {
-    throw new Error("QTS Portal OIDC is not configured. Set VITE_PORTAL_OIDC_CLIENT_ID from the identity seed output.");
+    throw new Error("QTS Portal chưa được cấu hình OIDC. Hãy đặt VITE_PORTAL_OIDC_CLIENT_ID từ kết quả seed định danh.");
   }
   return clientId;
 }
@@ -117,19 +117,19 @@ function readTransaction(state: string) {
 function responseError(response: Response) {
   return response.json()
     .catch(() => ({}))
-    .then((body: { error_description?: string }) => body.error_description ?? "The identity request could not be completed.");
+    .then((body: { error_description?: string }) => body.error_description ?? "Không thể hoàn tất yêu cầu định danh.");
 }
 
 function verifiedNonce(idToken: string, expectedNonce: string) {
   const payload = idToken.split(".")[1];
-  if (!payload) throw new Error("The identity token is malformed.");
+  if (!payload) throw new Error("Token định danh không đúng định dạng.");
   try {
     const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
     const claims = JSON.parse(atob(normalized)) as { nonce?: string };
-    if (claims.nonce !== expectedNonce) throw new Error("The identity response nonce is invalid.");
+    if (claims.nonce !== expectedNonce) throw new Error("Nonce trong phản hồi định danh không hợp lệ.");
   } catch (error) {
-    if (error instanceof Error && error.message === "The identity response nonce is invalid.") throw error;
-    throw new Error("The identity token is malformed.");
+    if (error instanceof Error && error.message === "Nonce trong phản hồi định danh không hợp lệ.") throw error;
+    throw new Error("Token định danh không đúng định dạng.");
   }
 }
 
@@ -167,13 +167,13 @@ export async function redeemAuthorizationResponse(search = window.location.searc
   const error = parameters.get("error");
   const description = parameters.get("error_description");
 
-  if (!state) throw new Error("The identity response is missing state.");
+  if (!state) throw new Error("Phản hồi định danh thiếu trường state.");
 
   if (error) {
     if (readTransaction(state)) sessionStorage.removeItem(transactionKey(state));
     throw new Error(description ?? error);
   }
-  if (!code) throw new Error("The identity response is missing an authorization code.");
+  if (!code) throw new Error("Phản hồi định danh thiếu authorization code.");
 
   const exchangeKey = `${state}:${code}`;
   const existingExchange = pendingExchanges.get(exchangeKey);
@@ -181,7 +181,7 @@ export async function redeemAuthorizationResponse(search = window.location.searc
 
   const transaction = readTransaction(state);
   if (!transaction) {
-    throw new Error("The sign-in request is missing, expired, or has already been used.");
+    throw new Error("Yêu cầu đăng nhập không tồn tại, đã hết hạn hoặc đã được sử dụng.");
   }
 
   const exchange = Promise.resolve().then(async () => {
@@ -201,7 +201,7 @@ export async function redeemAuthorizationResponse(search = window.location.searc
     });
     if (!response.ok) throw new Error(await responseError(response));
     const tokenSet = await response.json() as TokenSet;
-    if (!tokenSet.access_token || !tokenSet.id_token) throw new Error("The identity response did not include the required tokens.");
+    if (!tokenSet.access_token || !tokenSet.id_token) throw new Error("Phản hồi định danh không chứa đủ token bắt buộc.");
     verifiedNonce(tokenSet.id_token, transaction.nonce);
     return tokenSet;
   });
@@ -228,7 +228,7 @@ export async function loadPortalIdentity(accessToken: string) {
 
 export async function beginLogout() {
   const { end_session_endpoint } = await discover();
-  if (!end_session_endpoint) throw new Error("The identity provider does not support sign-out.");
+  if (!end_session_endpoint) throw new Error("Nhà cung cấp định danh không hỗ trợ đăng xuất.");
   const parameters = new URLSearchParams({
     client_id: portalClientId(),
     post_logout_redirect_uri: postLogoutRedirectUri(),

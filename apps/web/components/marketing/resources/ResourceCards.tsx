@@ -25,12 +25,12 @@ export function ResourceCover({ resource, priority = false }: { resource: Resour
 
 function ResourceMeta({ resource }: { resource: Resource }) {
   if (resource.author) return <span>{resource.author} <i /> {resource.date} <i /> {resource.readingTime}</span>;
-  return <span>{resource.client ?? resource.meta}</span>;
+  return <span>{resource.client ?? resource.meta ?? resource.readingTime}</span>;
 }
 
 export function ResourceCard({ resource, index = 0 }: { resource: Resource; index?: number }) {
   const reduceMotion = useReducedMotion();
-  const action = resource.download ? <a href={resource.download} download className="resource-action">Download PDF <ArrowDownTrayIcon width={14} /></a> : <Link href={resource.href} className="resource-action">Explore resource <ArrowRightIcon width={14} /></Link>;
+  const action = resource.download ? <a href={resource.download} download className="resource-action">Tải PDF <ArrowDownTrayIcon width={14} /></a> : <Link href={resource.href} className="resource-action">Xem tài nguyên <ArrowRightIcon width={14} /></Link>;
 
   return <motion.article className="resource-editorial-card" initial={reduceMotion ? false : { opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .2 }} transition={{ delay: Math.min(index * .06, .24), duration: .45 }}>
     <ResourceCover resource={resource} />

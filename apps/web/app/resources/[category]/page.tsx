@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const { category } = await params;
   const cat = getCategory(category);
   if (!cat) return {};
-  return { title: `${cat.label} — QTS Resources`, description: cat.description };
+  return { title: `${cat.label} — Tài nguyên QTS`, description: cat.description };
 }
 
 export default async function ResourceCategoryPage({ params }: { params: Promise<{ category: string }> }) {
@@ -33,7 +33,7 @@ export default async function ResourceCategoryPage({ params }: { params: Promise
   return <MarketingShell>
     <section className="resource-category-hero noise">
       <div className="container">
-        <Link href="/resources" className="back-link">← QTS knowledge center</Link>
+        <Link href="/resources" className="back-link">← Trung tâm tri thức QTS</Link>
         <span className="eyebrow">{cat.eyebrow}</span>
         <h1 className="display">{cat.title}</h1>
         <p>{cat.description}</p>
@@ -41,19 +41,19 @@ export default async function ResourceCategoryPage({ params }: { params: Promise
       </div>
     </section>
 
-    {isCaseStudies && <section className="section resource-context"><div className="container resource-context-grid"><Reveal><div><span className="eyebrow">A QTS case study has receipts</span><h2>From the business constraint to the operating result.</h2><p>Every story maps a real-world pressure to a delivered product surface, the architecture beneath it and a result leaders can bring back to the boardroom.</p></div></Reveal><Reveal delay={0.1}><dl><div><dt>Challenge</dt><dd>The decision, handoff or blind spot holding the organization back.</dd></div><div><dt>QTS solution</dt><dd>The connected product and delivery path that changed the work.</dd></div><div><dt>Impact</dt><dd>The operational result that made the transformation measurable.</dd></div></dl></Reveal></div></section>}
-    {isGuides && <section className="section resource-context"><div className="container guide-framework"><span>01 · Problem</span><span>02 · Approach</span><span>03 · Technology</span><span>04 · Business impact</span></div></section>}
-    {isInsights && <section className="section resource-context"><div className="container insight-intro"><SparklesIcon /><div><b>Written by QTS practitioners</b><p>Technology perspective grounded in what it takes to design, integrate and operate systems when failure is expensive.</p></div></div></section>}
-    {isPapers && <section className="section resource-context"><div className="container paper-intro"><DocumentTextIcon /><div><b>Executive research, ready to take with you</b><p>Each paper is a compact field guide for the strategic, technical and governance conversations required before a large platform investment.</p></div></div></section>}
-    {isUpdates && <section className="section resource-context"><div className="container update-intro"><span className="live"><i /> Release channel open</span><p>Product releases are presented as operational capabilities — what changed, where it appears in the platform and the work it helps teams do better.</p></div></section>}
+    {isCaseStudies && <section className="section resource-context"><div className="container resource-context-grid"><Reveal><div><span className="eyebrow">Tình huống tham khảo của QTS</span><h2>Từ ràng buộc vận hành đến định hướng kết quả.</h2><p>Mỗi nội dung mô tả một áp lực thực tế, bề mặt sản phẩm tương ứng và hướng kết quả có thể tham khảo — sử dụng như tài liệu thảo luận, không phải công bố kết quả khách hàng.</p></div></Reveal><Reveal delay={0.1}><dl><div><dt>Thách thức</dt><dd>Vấn đề quyết định hoặc điểm tắc nghẽn đang làm chậm tổ chức.</dd></div><div><dt>Giải pháp QTS</dt><dd>Sản phẩm và cách triển khai giúp thay đổi công việc thực tế.</dd></div><div><dt>Định hướng kết quả</dt><dd>Điều gì có thể cải thiện khi dữ liệu và quy trình được kết nối.</dd></div></dl></Reveal></div></section>}
+    {isGuides && <section className="section resource-context"><div className="container guide-framework"><span>01 · Vấn đề</span><span>02 · Cách tiếp cận</span><span>03 · Công nghệ</span><span>04 · Tác động vận hành</span></div></section>}
+    {isInsights && <section className="section resource-context"><div className="container insight-intro"><SparklesIcon /><div><b>Góc nhìn từ thực tiễn triển khai của QTS</b><p>Góc nhìn công nghệ dựa trên yêu cầu thiết kế, tích hợp và vận hành hệ thống khi độ tin cậy là ưu tiên hàng đầu.</p></div></div></section>}
+    {isPapers && <section className="section resource-context"><div className="container paper-intro"><DocumentTextIcon /><div><b>Tài liệu chuyên sâu sẵn sàng mang theo</b><p>Mỗi tài liệu là hướng dẫn ngắn gọn cho trao đổi chiến lược, kỹ thuật và quản trị trước một quyết định nền tảng lớn.</p></div></div></section>}
+    {isUpdates && <section className="section resource-context"><div className="container update-intro"><span className="live"><i /> Kênh phát hành đang hoạt động</span><p>Các bản cập nhật được trình bày như năng lực vận hành — điều gì đã thay đổi, xuất hiện ở đâu trong nền tảng và công việc đó hỗ trợ gì.</p></div></section>}
 
     <section className="section"><div className="container">
-      <Reveal><div className="section-heading"><span className="eyebrow">{cat.label}</span><h2>{isPapers ? "Research built for the download." : isUpdates ? "A clearer view of what moved forward." : "Work built to be useful in the room."}</h2></div></Reveal>
+      <Reveal><div className="section-heading"><span className="eyebrow">{cat.label}</span><h2>{isPapers ? "Tài liệu dành cho việc tải xuống." : isUpdates ? "Góc nhìn rõ hơn về những gì đã tiến triển." : "Nội dung có thể dùng ngay trong buổi thảo luận."}</h2></div></Reveal>
       <Reveal delay={0.1}><ResourceCardGrid resources={entries} /></Reveal>
-      {isPapers && <p className="download-note"><ArrowDownTrayIcon width={15} /> PDF downloads are provided for internal enterprise evaluation and planning.</p>}
-      {isUpdates && <div className="release-notes"><span>AI automation</span><span>Decision analytics engine</span><span>Visual workflow builder</span></div>}
-      <div style={{ marginTop: 32 }}><Link href="/contact" className="btn btn-primary">Bring a QTS expert into the conversation <ArrowRightIcon width={15} /></Link></div>
+      {isPapers && <p className="download-note"><ArrowDownTrayIcon width={15} /> Tài liệu PDF được cung cấp bằng tiếng Việt cho mục đích đánh giá và lập kế hoạch nội bộ.</p>}
+      {isUpdates && <div className="release-notes"><span>Tự động hóa bằng AI</span><span>Bộ máy phân tích quyết định</span><span>Công cụ xây dựng quy trình trực quan</span></div>}
+      <div style={{ marginTop: 32 }}><Link href="/contact" className="btn btn-primary">Mời QTS tham gia trao đổi <ArrowRightIcon width={15} /></Link></div>
     </div></section>
-    <CallToAction title="Build the evidence behind your next move." />
+    <CallToAction title="Tích lũy thêm cơ sở cho quyết định tiếp theo." />
   </MarketingShell>;
 }

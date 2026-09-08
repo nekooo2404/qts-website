@@ -22,7 +22,7 @@ export default function Loading() {
             transition={r ? { duration: 0 } : { duration: 1.2, repeat: Infinity, ease: [0.22, 1, 0.36, 1], repeatDelay: 0.3 }}
           />
         </div>
-        <p style={{ marginTop: 12, fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)" }}>Loading</p>
+        <p style={{ marginTop: 12, fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)" }}>Đang tải</p>
       </div>
     </div>
   );

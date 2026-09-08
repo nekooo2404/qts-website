@@ -6,6 +6,8 @@ import { ClockIcon, LockClosedIcon, Squares2X2Icon } from "@heroicons/react/24/o
 import { IdentityShell } from "@/components/IdentityShell";
 import { LauncherApplication, authorizeUrl, dateTime, identityFetch } from "@/lib/identity";
 
+const statusLabels: Record<string, string> = { Available: "Sẵn sàng" };
+
 export default function LauncherPage() {
   const [applications, setApplications] = useState<LauncherApplication[]>([]);
   const [error, setError] = useState("");
@@ -13,7 +15,7 @@ export default function LauncherPage() {
   useEffect(() => {
     identityFetch<{ applications: LauncherApplication[] }>("/api/launcher")
       .then((payload) => setApplications(payload.applications))
-      .catch((reason) => setError(reason instanceof Error ? reason.message : "Launcher could not be loaded."));
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Không thể tải danh sách ứng dụng."));
   }, []);
 
   const launch = async (application: LauncherApplication) => {
@@ -21,22 +23,22 @@ export default function LauncherPage() {
       const url = await authorizeUrl(application.client_id, application.redirect_uri);
       window.location.assign(url);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The launch could not be started.");
+      setError(reason instanceof Error ? reason.message : "Không thể khởi chạy ứng dụng.");
     }
   };
 
   return <IdentityShell active="apps">
     <section className="section">
-      <h1>Your QTS workspaces</h1>
-      <p className="lead">One account opens QTS Portal, CRM, ERP, HR, Analytics, AI, customer and partner workspaces based on your tenant permissions.</p>
+      <h1>Không gian làm việc của bạn</h1>
+      <p className="lead">Một tài khoản mở QTS Portal và các không gian CRM, ERP, HR, Analytics, AI theo phân quyền của tổ chức.</p>
       {error && <p role="alert" className="form-error">{error}</p>}
-      {applications.length === 0 ? <div className="panel empty">No permitted applications are currently assigned to your account. If you expected access, ask a QTS Identity administrator to add an application assignment in this tenant.</div> : <div className="launcher-grid">{applications.map((application, index) => <motion.button key={application.id} type="button" onClick={() => void launch(application)} className="launcher-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .04 }}>
-        <span className="badge badge-good">{application.status}</span>
+      {applications.length === 0 ? <div className="panel empty">Tài khoản chưa được gán ứng dụng nào. Nếu bạn cần truy cập, vui lòng liên hệ quản trị viên QTS Identity để được phân quyền.</div> : <div className="launcher-grid">{applications.map((application, index) => <motion.button key={application.id} type="button" onClick={() => void launch(application)} className="launcher-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .04 }}>
+        <span className="badge badge-good">{statusLabels[application.status] ?? application.status}</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10 }}><Squares2X2Icon width={15}/>{application.icon}</span>
         <b>{application.name}</b>
         <small>{application.description}</small>
         <span><ClockIcon width={13}/>{dateTime(application.last_accessed_at)}</span>
-        <span><LockClosedIcon width={13}/>Launch securely</span>
+        <span><LockClosedIcon width={13}/>Mở an toàn</span>
       </motion.button>)}</div>}
     </section>
   </IdentityShell>;

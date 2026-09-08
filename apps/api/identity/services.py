@@ -111,9 +111,9 @@ def membership_for(user, tenant):
     try:
         membership = Membership.objects.select_related("user", "tenant").get(user=user, tenant=tenant)
     except Membership.DoesNotExist as error:
-        raise IdentityError("access_denied", "Access is not available for this organization.", 403) from error
+        raise IdentityError("access_denied", "Không có quyền truy cập cho tổ chức này.", 403) from error
     if membership.status != Membership.Status.ACTIVE or not user.is_active or tenant.status != "active":
-        raise IdentityError("access_denied", "Access is not available for this organization.", 403)
+        raise IdentityError("access_denied", "Không có quyền truy cập cho tổ chức này.", 403)
     return membership
 
 
@@ -194,32 +194,32 @@ def create_identity_session(user, tenant, request, methods):
 
 def validate_redirect(application, redirect_uri):
     if not redirect_uri or redirect_uri not in application.redirect_uris:
-        raise IdentityError("invalid_request", "The redirect URI is not registered for this application.")
+        raise IdentityError("invalid_request", "Redirect URI chưa được đăng ký cho ứng dụng này.")
 
 
 def validate_authorization_request(params):
     if params.get("response_type") != "code":
-        raise IdentityError("unsupported_response_type", "Only authorization code flow is supported.")
+        raise IdentityError("unsupported_response_type", "Chỉ hỗ trợ luồng authorization code.")
     client_id = params.get("client_id", "")
     application = Application.objects.filter(client_id=client_id, is_active=True).first()
     if not application:
-        raise IdentityError("unauthorized_client", "The application is not available.")
+        raise IdentityError("unauthorized_client", "Ứng dụng hiện không khả dụng.")
     redirect_uri = params.get("redirect_uri", "")
     validate_redirect(application, redirect_uri)
     if not params.get("state"):
-        raise IdentityError("invalid_request", "state is required.")
+        raise IdentityError("invalid_request", "Bắt buộc có trường state.")
     if application.is_public and (
         params.get("code_challenge_method") != "S256" or not params.get("code_challenge")
     ):
-        raise IdentityError("invalid_request", "PKCE S256 is required for this application.")
+        raise IdentityError("invalid_request", "Ứng dụng này bắt buộc sử dụng PKCE S256.")
     scopes = set(params.get("scope", "").split())
     if "openid" not in scopes:
-        raise IdentityError("invalid_scope", "openid scope is required.")
+        raise IdentityError("invalid_scope", "Bắt buộc có scope openid.")
     available = CORE_SCOPES | set(application.allowed_scopes)
     if not scopes.issubset(available):
-        raise IdentityError("invalid_scope", "One or more scopes are not available.")
+        raise IdentityError("invalid_scope", "Một hoặc nhiều scope không khả dụng.")
     if "openid" in scopes and not params.get("nonce"):
-        raise IdentityError("invalid_request", "nonce is required for OpenID Connect.")
+        raise IdentityError("invalid_request", "OpenID Connect bắt buộc có trường nonce.")
     return application, redirect_uri, sorted(scopes)
 
 
@@ -248,11 +248,11 @@ def consume_authorization_code(raw_code, application, redirect_uri, verifier):
     with transaction.atomic():
         code = AuthorizationCode.objects.select_for_update().select_related("session__user", "session__tenant").filter(code_hash=digest).first()
         if not code or code.application_id != application.id or code.redirect_uri != redirect_uri:
-            raise IdentityError("invalid_grant", "The authorization code is invalid.")
+            raise IdentityError("invalid_grant", "Mã ủy quyền không hợp lệ.")
         if code.consumed_at or code.expires_at <= timezone.now() or not code.session.is_active:
-            raise IdentityError("invalid_grant", "The authorization code is expired or already used.")
+            raise IdentityError("invalid_grant", "Mã ủy quyền đã hết hạn hoặc đã được sử dụng.")
         if code.code_challenge_method != "S256" or not verifier or not verify_code_verifier(code.code_challenge, verifier):
-            raise IdentityError("invalid_grant", "The PKCE verifier is invalid.")
+            raise IdentityError("invalid_grant", "Mã xác minh PKCE không hợp lệ.")
         code.consumed_at = timezone.now()
         code.save(update_fields=["consumed_at"])
     return code
@@ -293,7 +293,7 @@ def decode_token(raw_token, *, verify_audience=None):
     header = jwt.get_unverified_header(raw_token)
     key = SigningKey.objects.filter(kid=header.get("kid"), is_active=True).first()
     if not key:
-        raise IdentityError("invalid_token", "The signing key is not recognized.", 401)
+        raise IdentityError("invalid_token", "Không nhận dạng được khóa ký.", 401)
     kwargs = {"algorithms": ["RS256"], "issuer": settings.IDENTITY_ISSUER}
     if verify_audience:
         kwargs["audience"] = verify_audience
@@ -304,13 +304,13 @@ def decode_token(raw_token, *, verify_audience=None):
             signing_private_key(key).public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
         ), **kwargs)
     except jwt.PyJWTError as error:
-        raise IdentityError("invalid_token", "The token is invalid or expired.", 401) from error
+        raise IdentityError("invalid_token", "Token không hợp lệ hoặc đã hết hạn.", 401) from error
     session = IdentitySession.objects.select_related("user", "tenant").filter(id=payload.get("sid")).first()
     if not session or not session.is_active or str(session.user_id) != payload.get("sub"):
-        raise IdentityError("invalid_token", "The session is no longer active.", 401)
+        raise IdentityError("invalid_token", "Phiên đăng nhập không còn hoạt động.", 401)
     membership = membership_for(session.user, session.tenant)
     if payload.get("pver") != membership.policy_version:
-        raise IdentityError("invalid_token", "The authorization policy has changed.", 401)
+        raise IdentityError("invalid_token", "Chính sách phân quyền đã thay đổi.", 401)
     return payload, session, membership
 
 
@@ -343,7 +343,7 @@ def rotate_refresh_token(raw_refresh, application):
     with transaction.atomic():
         token = RefreshToken.objects.select_for_update().select_related("family__session__user", "family__session__tenant", "family__application").filter(token_hash=digest).first()
         if not token or token.family.application_id != application.id:
-            raise IdentityError("invalid_grant", "The refresh token is invalid.")
+            raise IdentityError("invalid_grant", "Refresh token không hợp lệ.")
         family = token.family
         session = family.session
         if token.used_at or token.revoked_at or family.revoked_at or token.expires_at <= timezone.now() or not family.session.is_active:
@@ -357,7 +357,7 @@ def rotate_refresh_token(raw_refresh, application):
         family.revoke(reuse=True)
         session.revoke("refresh_token_reuse")
         audit(None, "identity.refresh.reuse_detected", tenant=session.tenant, actor=session.user, target=family, outcome="failure")
-        raise IdentityError("invalid_grant", "The refresh token is invalid.")
+        raise IdentityError("invalid_grant", "Refresh token không hợp lệ.")
     token_set = issue_token_set(session, application, ["openid", "profile", "email"])
     token_set["refresh_token"] = raw_next
     return token_set

@@ -6,11 +6,11 @@ import { ArrowUpRightIcon, CloudIcon, CommandLineIcon, GlobeAltIcon, SparklesIco
 type Solution = { title: string; description: string; icon: typeof SparklesIcon; className: string; type: "columns" | "list" | "ai" | "cloud" };
 
 const solutions: Solution[] = [
-  { title: "Enterprise Software", description: "Core systems that make complex organizations more responsive.", icon: Squares2X2Icon, className: "enterprise", type: "columns" },
-  { title: "SaaS Platforms", description: "Products your customers choose to return to.", icon: GlobeAltIcon, className: "", type: "list" },
-  { title: "AI Solutions", description: "Intelligence integrated into the flow of work.", icon: SparklesIcon, className: "", type: "ai" },
-  { title: "Cloud Systems", description: "Modern foundations ready for every next move.", icon: CloudIcon, className: "cloud", type: "cloud" },
-  { title: "Web Applications", description: "Digital experiences that perform at any scale.", icon: CommandLineIcon, className: "", type: "list" },
+  { title: "Phần mềm doanh nghiệp", description: "Hệ thống cốt lõi giúp tổ chức phức tạp phản ứng nhanh hơn.", icon: Squares2X2Icon, className: "enterprise", type: "columns" },
+  { title: "Nền tảng SaaS", description: "Sản phẩm số an toàn, có khả năng mở rộng theo thị trường.", icon: GlobeAltIcon, className: "", type: "list" },
+  { title: "Giải pháp AI", description: "Trí tuệ được tích hợp vào luồng công việc thực tế.", icon: SparklesIcon, className: "", type: "ai" },
+  { title: "Hệ thống đám mây", description: "Nền tảng hiện đại sẵn sàng cho mỗi bước phát triển tiếp theo.", icon: CloudIcon, className: "cloud", type: "cloud" },
+  { title: "Ứng dụng web", description: "Trải nghiệm số hiệu năng cao ở mọi quy mô.", icon: CommandLineIcon, className: "", type: "list" },
 ];
 
 function MiniGraphic({ type }: { type: Solution["type"] }) {

@@ -24,13 +24,13 @@ export function SignInForm() {
   const [busy, setBusy] = useState(false);
   const authorize = useMemo(() => typeof window === "undefined" ? "" : preserveAuthorization(), []);
 
-  useEffect(() => { document.title = "Sign in — QTS Identity"; }, []);
+  useEffect(() => { document.title = "Đăng nhập — QTS Identity"; }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     if (status === "identifier") {
-      if (!email.includes("@")) { setError("Enter your work email address."); return; }
+      if (!email.includes("@")) { setError("Vui lòng nhập địa chỉ email công việc."); return; }
       setStatus("password");
       return;
     }
@@ -44,27 +44,27 @@ export function SignInForm() {
       });
       window.location.assign(identityPath(authorize ? `/identity-api/oauth/authorize?${authorize}` : "/apps"));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Sign-in could not be completed.");
+      setError(reason instanceof Error ? reason.message : "Không thể hoàn tất đăng nhập.");
     } finally {
       setBusy(false);
     }
   }
 
   return <main className="ambient-login"><motion.section className="login-card" initial={{ opacity: 0, y: 18, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .36 }}>
-    <div className="brand"><i className="brand-mark"/><span>QTS <small>Identity Center</small></span></div>
-    <h1>{status === "identifier" ? "Sign in to your workspace" : "Welcome back"}</h1>
-    <p>{status === "identifier" ? "Use your work email to find your organization’s secure sign-in path." : `Continue securely as ${email}.`}</p>
+    <div className="brand"><i className="brand-mark"/><span>QTS <small>Trung tâm Định danh</small></span></div>
+    <h1>{status === "identifier" ? "Đăng nhập vào không gian làm việc" : "Chào mừng trở lại"}</h1>
+    <p>{status === "identifier" ? "Sử dụng email công việc để tìm đường đăng nhập an toàn của tổ chức." : `Tiếp tục an toàn với ${email}.`}</p>
     <form onSubmit={submit}>
-      <label className="field">Work email<input type="email" autoComplete="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} disabled={status === "password"} placeholder="you@company.com"/></label>
-      {status === "password" && <label className="field">Password<input type="password" autoComplete="current-password" autoFocus value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password"/></label>}
+      <label className="field">Email công việc<input type="email" autoComplete="email" autoFocus value={email} onChange={(event) => setEmail(event.target.value)} disabled={status === "password"} placeholder="ten@cong-ty.vn"/></label>
+      {status === "password" && <label className="field">Mật khẩu<input type="password" autoComplete="current-password" autoFocus value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu"/></label>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="primary-action" type="submit" disabled={busy} style={{ width: "100%", marginTop: 16 }}>{busy ? "Verifying secure session…" : status === "identifier" ? <>Continue <ArrowRightIcon width={15}/></> : <>Sign in securely <ArrowRightIcon width={15}/></>}</button>
+      <button className="primary-action" type="submit" disabled={busy} style={{ width: "100%", marginTop: 16 }}>{busy ? "Đang xác thực phiên an toàn…" : status === "identifier" ? <>Tiếp tục <ArrowRightIcon width={15}/></> : <>Đăng nhập an toàn <ArrowRightIcon width={15}/></>}</button>
     </form>
-    <div className="idp-grid" aria-label="Alternative sign-in options">
-      <button className="idp-button" type="button"><BuildingOffice2Icon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Continue with Microsoft</button>
-      <button className="idp-button" type="button"><KeyIcon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Continue with Google</button>
-      <button className="idp-button" type="button"><ShieldCheckIcon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Enterprise SSO</button>
+    <div className="idp-grid" aria-label="Phương thức đăng nhập khác">
+      <button className="idp-button" type="button"><BuildingOffice2Icon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Tiếp tục với Microsoft</button>
+      <button className="idp-button" type="button"><KeyIcon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Tiếp tục với Google</button>
+      <button className="idp-button" type="button"><ShieldCheckIcon width={15} style={{ verticalAlign: "middle", marginRight: 7 }}/>Đăng nhập SSO doanh nghiệp</button>
     </div>
-    <p className="form-note">Your organization controls available sign-in methods. QTS never exposes your password to connected applications.</p>
+    <p className="form-note">Tổ chức của bạn quyết định phương thức đăng nhập khả dụng. QTS không chia sẻ mật khẩu với các ứng dụng đã kết nối.</p>
   </motion.section></main>;
 }

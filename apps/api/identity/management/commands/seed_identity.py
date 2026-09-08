@@ -22,22 +22,22 @@ from identity.models import (
 
 
 PERMISSIONS = {
-    "portal.view_dashboard": "View portal dashboard",
-    "portal.view_projects": "View projects",
-    "crm.view_customer": "View CRM customers",
-    "crm.edit_customer": "Edit CRM customers",
-    "crm.delete_customer": "Delete CRM customers",
-    "hr.view_people": "View people directory",
-    "finance.view_invoice": "View invoices",
-    "finance.approve_payment": "Approve payments",
-    "developer.view_logs": "View developer logs",
-    "developer.deploy_application": "Deploy applications",
-    "analytics.view_reports": "View analytics reports",
-    "identity.view_console": "View Identity Console",
-    "identity.manage_users": "Manage users and memberships",
-    "identity.manage_applications": "Manage applications",
-    "identity.manage_permissions": "Manage permissions",
-    "identity.view_audit": "View audit events",
+    "portal.view_dashboard": "Xem tổng quan cổng thông tin",
+    "portal.view_projects": "Xem dự án",
+    "crm.view_customer": "Xem khách hàng CRM",
+    "crm.edit_customer": "Chỉnh sửa khách hàng CRM",
+    "crm.delete_customer": "Xóa khách hàng CRM",
+    "hr.view_people": "Xem danh bạ nhân sự",
+    "finance.view_invoice": "Xem hóa đơn",
+    "finance.approve_payment": "Phê duyệt thanh toán",
+    "developer.view_logs": "Xem nhật ký dành cho nhà phát triển",
+    "developer.deploy_application": "Triển khai ứng dụng",
+    "analytics.view_reports": "Xem báo cáo phân tích",
+    "identity.view_console": "Xem bảng điều khiển định danh",
+    "identity.manage_users": "Quản lý người dùng và tư cách thành viên",
+    "identity.manage_applications": "Quản lý ứng dụng",
+    "identity.manage_permissions": "Quản lý quyền",
+    "identity.view_audit": "Xem sự kiện kiểm tra",
 }
 
 ROLE_PERMISSIONS = {
@@ -55,21 +55,21 @@ ROLE_PERMISSIONS = {
 
 APPLICATIONS = [
     # qts-portal uses the configured production values when the command runs.
-    ("qts-portal", "QTS Portal", "Enterprise operating workspace", ["portal.view_dashboard"], None),
-    ("qts-crm", "QTS CRM", "Customer relationships and pipeline", ["crm.view_customer"], ["http://localhost:5174/crm/callback"]),
-    ("qts-erp", "QTS ERP", "Operations, finance and planning", ["finance.view_invoice"], ["http://localhost:5174/erp/callback"]),
-    ("qts-hr", "QTS HR", "People and organizational health", ["hr.view_people"], ["http://localhost:5174/hr/callback"]),
-    ("qts-analytics", "QTS Analytics", "Enterprise decision intelligence", ["analytics.view_reports"], ["http://localhost:5174/analytics/callback"]),
-    ("qts-ai", "QTS AI Assistant", "Governed enterprise intelligence", ["analytics.view_reports"], ["http://localhost:5174/ai/callback"]),
+    ("qts-portal", "Cổng thông tin QTS", "Không gian vận hành doanh nghiệp", ["portal.view_dashboard"], None),
+    ("qts-crm", "QTS CRM", "Quan hệ khách hàng và quy trình kinh doanh", ["crm.view_customer"], ["http://localhost:5174/crm/callback"]),
+    ("qts-erp", "QTS ERP", "Vận hành, tài chính và lập kế hoạch", ["finance.view_invoice"], ["http://localhost:5174/erp/callback"]),
+    ("qts-hr", "QTS HR", "Nhân sự và tổ chức", ["hr.view_people"], ["http://localhost:5174/hr/callback"]),
+    ("qts-analytics", "QTS Analytics", "Phân tích hỗ trợ quyết định doanh nghiệp", ["analytics.view_reports"], ["http://localhost:5174/analytics/callback"]),
+    ("qts-ai", "Trợ lý AI QTS", "Trí tuệ doanh nghiệp có kiểm soát", ["analytics.view_reports"], ["http://localhost:5174/ai/callback"]),
 ]
 
 
 class Command(BaseCommand):
-    help = "Seed a local QTS Identity tenant, users, roles and registered applications."
+    help = "Khởi tạo dữ liệu định danh QTS cho tenant, người dùng, vai trò và ứng dụng đã đăng ký."
 
     @transaction.atomic
     def handle(self, *args, **options):
-        tenant, _ = Tenant.objects.get_or_create(slug="qts-global", defaults={"name": "QTS Global", "require_mfa": False})
+        tenant, _ = Tenant.objects.get_or_create(slug="qts-global", defaults={"name": "CÔNG TY TNHH PHÁT TRIỂN CÔNG NGHỆ QTS", "require_mfa": False})
         domain, _ = OrganizationDomain.objects.get_or_create(tenant=tenant, domain="qts.com")
         if not domain.verified_at:
             domain.verified_at = timezone.now()
@@ -86,15 +86,16 @@ class Command(BaseCommand):
             for permission in granted:
                 RolePermission.objects.get_or_create(role=role, permission=permission_objects[permission])
 
+        # Demo accounts must stay aligned with infra/keycloak/realm-qts.json.
         users = [
-            ("alex@qts.com", "Alex Harper", "Operations lead", "super-admin"),
-            ("maya@qts.com", "Maya Chen", "Principal engineer", "developer"),
-            ("jonas@qts.com", "Jonas Lee", "Delivery director", "manager"),
-            ("nora@qts.com", "Nora Lewis", "Product designer", "employee"),
+            ("alex@qts.com", "Alex Harper", "Phụ trách vận hành", "super-admin"),
+            ("maya@qts.com", "Maya Chen", "Kỹ sư chính", "developer"),
+            ("jonas@qts.com", "Jonas Lee", "Giám đốc triển khai", "manager"),
+            ("nora@qts.com", "Nora Lewis", "Thiết kế sản phẩm", "employee"),
         ]
         demo_password = os.getenv("DEMO_PASSWORD")
         if not demo_password:
-            raise CommandError("DEMO_PASSWORD is required to seed demo users.")
+            raise CommandError("Cần đặt DEMO_PASSWORD để khởi tạo người dùng demo.")
         memberships = []
         for email, name, title, role_code in users:
             user, created = User.objects.get_or_create(email=email, defaults={"display_name": name})
@@ -142,5 +143,5 @@ class Command(BaseCommand):
             if slug == "qts-portal":
                 portal_client_id = application.client_id
 
-        self.stdout.write(self.style.SUCCESS("Seeded QTS Identity."))
-        self.stdout.write(f"QTS Portal OIDC client ID: {portal_client_id}")
+        self.stdout.write(self.style.SUCCESS("Đã khởi tạo QTS Identity."))
+        self.stdout.write(f"OIDC client ID của Cổng thông tin QTS: {portal_client_id}")
