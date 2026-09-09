@@ -24,21 +24,40 @@ type AuthorizationTransaction = {
 
 type TokenSet = {
   access_token: string;
-  id_token: string;
+  id_token?: string;
+  refresh_token?: string;
   token_type: string;
   expires_in: number;
+};
+
+type StoredSession = {
+  access_token: string;
+  id_token: string;
+  refresh_token: string;
+  expires_at: number;
 };
 
 type OpenIdConfiguration = {
   authorization_endpoint: string;
   token_endpoint: string;
+  revocation_endpoint?: string;
   end_session_endpoint: string;
 };
 
 const transactionPrefix = "qts-portal:oidc:";
 const transactionLifetime = 10 * 60 * 1000;
+const tokenStorageKey = "qts-portal:session";
+const expiryMargin = 30 * 1000;
 const pendingExchanges = new Map<string, Promise<TokenSet>>();
 let discoveryPromise: Promise<OpenIdConfiguration> | null = null;
+let refreshPromise: Promise<StoredSession> | null = null;
+
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    this.name = "SessionExpiredError";
+  }
+}
 
 async function discover(): Promise<OpenIdConfiguration> {
   if (!discoveryPromise) {
@@ -120,6 +139,38 @@ function responseError(response: Response) {
     .then((body: { error_description?: string }) => body.error_description ?? "Không thể hoàn tất yêu cầu định danh.");
 }
 
+function readSession(): StoredSession | null {
+  const serialized = sessionStorage.getItem(tokenStorageKey);
+  if (!serialized) return null;
+  try {
+    const session = JSON.parse(serialized) as StoredSession;
+    if (!session.access_token || !session.id_token || !session.refresh_token || !Number.isFinite(session.expires_at)) throw new Error();
+    return session;
+  } catch {
+    sessionStorage.removeItem(tokenStorageKey);
+    return null;
+  }
+}
+
+export function clearPortalSession() {
+  sessionStorage.removeItem(tokenStorageKey);
+}
+
+function storeSession(tokens: TokenSet, previous?: StoredSession) {
+  const expiresIn = Number(tokens.expires_in);
+  const session = {
+    access_token: tokens.access_token,
+    id_token: tokens.id_token ?? previous?.id_token ?? "",
+    refresh_token: tokens.refresh_token ?? previous?.refresh_token ?? "",
+    expires_at: Date.now() + Math.max(0, expiresIn * 1000 - expiryMargin),
+  } satisfies StoredSession;
+  if (!session.access_token || !session.id_token || !session.refresh_token || !Number.isFinite(expiresIn) || expiresIn <= 0) {
+    throw new Error("Phản hồi định danh không chứa đủ token bắt buộc.");
+  }
+  sessionStorage.setItem(tokenStorageKey, JSON.stringify(session));
+  return session;
+}
+
 function verifiedNonce(idToken: string, expectedNonce: string) {
   const payload = idToken.split(".")[1];
   if (!payload) throw new Error("Token định danh không đúng định dạng.");
@@ -146,7 +197,7 @@ export async function beginAuthorization() {
     response_type: "code",
     client_id: clientId,
     redirect_uri: redirectUri(),
-    scope: "openid profile email",
+    scope: "openid profile email offline_access",
     state,
     nonce,
     code_challenge: challenge,
@@ -201,8 +252,9 @@ export async function redeemAuthorizationResponse(search = window.location.searc
     });
     if (!response.ok) throw new Error(await responseError(response));
     const tokenSet = await response.json() as TokenSet;
-    if (!tokenSet.access_token || !tokenSet.id_token) throw new Error("Phản hồi định danh không chứa đủ token bắt buộc.");
+    if (!tokenSet.access_token || !tokenSet.id_token || !tokenSet.refresh_token) throw new Error("Phản hồi định danh không chứa đủ token bắt buộc.");
     verifiedNonce(tokenSet.id_token, transaction.nonce);
+    storeSession(tokenSet);
     return tokenSet;
   });
 
@@ -210,24 +262,93 @@ export async function redeemAuthorizationResponse(search = window.location.searc
   return exchange;
 }
 
-async function authorizedGet<T>(path: string, accessToken: string): Promise<T> {
-  const response = await fetch(`${apiIssuer}${path}`, {
+async function exchangeRefreshToken() {
+  const previous = readSession();
+  if (!previous) throw new SessionExpiredError();
+  try {
+    const { token_endpoint } = await discover();
+    const response = await fetch(token_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: portalClientId(),
+        refresh_token: previous.refresh_token,
+      }).toString(),
+    });
+    if (!response.ok) throw new Error();
+    return storeSession(await response.json() as TokenSet, previous);
+  } catch {
+    clearPortalSession();
+    throw new SessionExpiredError();
+  }
+}
+
+async function refreshSession() {
+  if (refreshPromise) return refreshPromise;
+  const pending = exchangeRefreshToken();
+  refreshPromise = pending;
+  try {
+    return await pending;
+  } finally {
+    if (refreshPromise === pending) refreshPromise = null;
+  }
+}
+
+async function getAccessToken() {
+  let session = readSession();
+  if (!session) throw new SessionExpiredError();
+  if (Date.now() >= session.expires_at) session = await refreshSession();
+  return session.access_token;
+}
+
+export function hasStoredSession() {
+  return readSession() !== null;
+}
+
+export async function restoreSession() {
+  if (!readSession()) return false;
+  await getAccessToken();
+  return true;
+}
+
+async function authorizedGet<T>(path: string): Promise<T> {
+  let accessToken = await getAccessToken();
+  let response = await fetch(`${apiIssuer}${path}`, {
     headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
   });
+  if (response.status === 401) {
+    const current = readSession();
+    if (!current) throw new SessionExpiredError();
+    if (current.access_token === accessToken) await refreshSession();
+    accessToken = await getAccessToken();
+    response = await fetch(`${apiIssuer}${path}`, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+    });
+  }
   if (!response.ok) throw new Error(await responseError(response));
   return response.json() as Promise<T>;
 }
 
-export async function loadPortalIdentity(accessToken: string) {
+export async function loadPortalIdentity() {
   const [profile, entitlements] = await Promise.all([
-    authorizedGet<UserInfo>("/oauth/userinfo", accessToken),
-    authorizedGet<PortalEntitlements>("/api/portal-entitlements", accessToken),
+    authorizedGet<UserInfo>("/oauth/userinfo"),
+    authorizedGet<PortalEntitlements>("/api/portal-entitlements"),
   ]);
   return { profile, entitlements };
 }
 
 export async function beginLogout() {
-  const { end_session_endpoint } = await discover();
+  const session = readSession();
+  clearPortalSession();
+  const { end_session_endpoint, revocation_endpoint } = await discover();
+  if (session && revocation_endpoint) {
+    await fetch(revocation_endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: session.refresh_token, client_id: portalClientId() }).toString(),
+    }).catch(() => undefined);
+  }
   if (!end_session_endpoint) throw new Error("Nhà cung cấp định danh không hỗ trợ đăng xuất.");
   const parameters = new URLSearchParams({
     client_id: portalClientId(),

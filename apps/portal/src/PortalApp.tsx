@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { beginAuthorization, beginLogout, identityWebOrigin, isAuthorizationCallback, loadPortalIdentity, redeemAuthorizationResponse } from "./oidc";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { beginAuthorization, beginLogout, clearPortalSession, hasStoredSession, identityWebOrigin, isAuthorizationCallback, loadPortalIdentity, redeemAuthorizationResponse, restoreSession, SessionExpiredError } from "./oidc";
 import type { PortalEntitlements, UserInfo } from "./oidc";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -18,6 +18,7 @@ import {
   CubeTransparentIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
+  EnvelopeIcon,
   FolderIcon,
   HomeIcon,
   LockClosedIcon,
@@ -34,7 +35,6 @@ type Icon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 type Person = { id: string; name: string; title: string; initials: string; email: string };
 
 type IdentityState = {
-  accessToken: string;
   person: Person;
   entitlements: PortalEntitlements;
 };
@@ -178,11 +178,42 @@ function CommandPalette({ onClose, onPage, allowedModules }: { onClose: () => vo
   </motion.div>;
 }
 
-function Topbar({ page, onCommand }: { page: Page; onCommand: () => void }) {
+function WaffleLauncher({ allowedModules, onPage }: { allowedModules: Page[]; onPage: (page: Page) => void }) {
+  const [open, setOpen] = useState(false);
+  const shell = useRef<HTMLDivElement>(null);
+  const modules = allModules.filter(module => allowedModules.includes(module.page));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent | MouseEvent) => {
+      if (event instanceof KeyboardEvent && event.key === "Escape") setOpen(false);
+      if (event instanceof MouseEvent && !shell.current?.contains(event.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    window.addEventListener("mousedown", close);
+    return () => {
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("mousedown", close);
+    };
+  }, [open]);
+
+  return <div className="waffle-shell" ref={shell}>
+    <button className="icon-action waffle-button" type="button" onClick={() => setOpen(value => !value)} aria-label="Ứng dụng QTS" aria-haspopup="menu" aria-expanded={open}><i className="waffle-dots" aria-hidden="true">{Array.from({ length: 9 }, (_, index) => <span key={index}/>)}</i></button>
+    {open && <motion.div className="waffle-panel" role="menu" aria-label="Ứng dụng QTS" initial={{ opacity: 0, y: -7, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .15 }}>
+      <div className="waffle-heading"><b>Ứng dụng QTS</b><small>Không gian làm việc của bạn</small></div>
+      <div className="waffle-grid">
+        {modules.map(module => { const ModuleIcon = module.icon; return <button className="waffle-item" type="button" role="menuitem" key={module.page} onClick={() => { onPage(module.page); setOpen(false); }}><i><ModuleIcon/></i><span>{pageLabels[module.page]}</span></button>; })}
+        <a className="waffle-item" role="menuitem" href="https://mail.qtsgroup.vn" target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}><i className="mail"><EnvelopeIcon/></i><span>Hộp thư QTS</span></a>
+      </div>
+    </motion.div>}
+  </div>;
+}
+
+function Topbar({ page, onCommand, allowedModules, onPage }: { page: Page; onCommand: () => void; allowedModules: Page[]; onPage: (page: Page) => void }) {
   return <header className="topbar">
     <div className="breadcrumb"><span>QTS</span><span> / </span><b>{pageLabels[page]}</b></div>
     <button className="command-button" onClick={onCommand}><MagnifyingGlassIcon/><span>Tìm kiếm hoặc chuyển đến…</span><i className="key">⌘ K</i></button>
-    <div className="top-actions"><button className="icon-action" aria-label="Thông báo"><BellIcon/></button><button className="icon-action" aria-label="Trợ giúp"><CircleStackIcon/></button></div>
+    <div className="top-actions"><WaffleLauncher allowedModules={allowedModules} onPage={onPage}/><button className="icon-action" aria-label="Thông báo"><BellIcon/></button><button className="icon-action" aria-label="Trợ giúp"><CircleStackIcon/></button></div>
   </header>;
 }
 
@@ -351,7 +382,7 @@ function Settings({ person, entitlements, canManageAccess }: { person: Person; e
   return <>
     <PageHeading page="Cài đặt" description="Xem quyền truy cập tổ chức và tùy chọn vận hành QTS."/>
     <AccessManagement person={person} entitlements={entitlements} canManageAccess={canManageAccess}/>
-    <div className="settings-grid settings-support-grid">{cards.map(([title, value, copy, Icon]) => <article className="panel setting-card" key={title}><i><Icon/></i><h2>{title}</h2><b>{value}</b><p>{copy}</p><a className="date-filter" href={`${identityWebOrigin}/console`}>Mở Trung tâm Định danh<ChevronDownIcon width={12}/></a></article>)}</div>
+    <div className="settings-grid settings-support-grid">{cards.map(([title, value, copy, Icon]) => <article className="panel setting-card" key={title}><i><Icon/></i><h2>{title}</h2><b>{value}</b><p>{copy}</p><a className="date-filter" href={`${identityWebOrigin}/console`}>Mở Trung tâm Định danh<ArrowRightIcon width={12}/></a></article>)}</div>
   </>;
 }
 
@@ -373,7 +404,7 @@ function AuthenticationStatus() {
 
 export default function PortalApp() {
   const [identity, setIdentity] = useState<IdentityState | null>(null);
-  const [phase, setPhase] = useState<AuthPhase>(() => isAuthorizationCallback() ? "authenticating" : "unauthenticated");
+  const [phase, setPhase] = useState<AuthPhase>(() => isAuthorizationCallback() || hasStoredSession() ? "authenticating" : "unauthenticated");
   const [authenticationError, setAuthenticationError] = useState("");
   const [page, setPage] = useState<Page>("Dashboard");
   const [command, setCommand] = useState(false);
@@ -384,11 +415,10 @@ export default function PortalApp() {
 
     void (async () => {
       try {
-        const tokens = await redeemAuthorizationResponse();
-        const { profile, entitlements } = await loadPortalIdentity(tokens.access_token);
+        await redeemAuthorizationResponse();
+        const { profile, entitlements } = await loadPortalIdentity();
         if (cancelled) return;
         setIdentity({
-          accessToken: tokens.access_token,
           person: personFromUserInfo(profile, entitlements),
           entitlements,
         });
@@ -396,6 +426,7 @@ export default function PortalApp() {
         window.history.replaceState({}, document.title, "/");
       } catch (error) {
         if (cancelled) return;
+        if (error instanceof SessionExpiredError) clearPortalSession();
         setAuthenticationError(error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập.");
         setPhase("error");
         window.history.replaceState({}, document.title, "/");
@@ -404,6 +435,40 @@ export default function PortalApp() {
 
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (isAuthorizationCallback() || phase !== "authenticating") return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const restored = await restoreSession();
+        if (!restored) {
+          setPhase("unauthenticated");
+          return;
+        }
+        const { profile, entitlements } = await loadPortalIdentity();
+        if (cancelled) return;
+        setIdentity({
+          person: personFromUserInfo(profile, entitlements),
+          entitlements,
+        });
+        setPhase("authenticated");
+      } catch (error) {
+        if (cancelled) return;
+        if (error instanceof SessionExpiredError) {
+          clearPortalSession();
+          setAuthenticationError(error.message);
+          setPhase("error");
+          return;
+        }
+        clearPortalSession();
+        setPhase("unauthenticated");
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [phase]);
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -451,9 +516,9 @@ export default function PortalApp() {
 
   const person = identity.person;
   if (allowedModules.length === 0) {
-    return <main className="portal-shell portal-shell-empty"><div className="workspace"><Topbar page={page} onCommand={() => setCommand(true)}/><main className="main-content"><AccessDenied/></main></div><div className="portal-empty-sidebar"><ProfileMenu person={person} onSignOut={signOut}/></div></main>;
+    return <main className="portal-shell portal-shell-empty"><div className="workspace"><Topbar page={page} onCommand={() => setCommand(true)} allowedModules={allowedModules} onPage={setPage}/><main className="main-content"><AccessDenied/></main></div><div className="portal-empty-sidebar"><ProfileMenu person={person} onSignOut={signOut}/></div></main>;
   }
 
   const renderPage = () => ({ Dashboard: <Dashboard person={person}/>, Projects: <Projects/>, CRM: <CRM/>, HR: <HR/>, Finance: <Finance/>, Developer: <Developer/>, Analytics: <Analytics/>, Settings: <Settings person={person} entitlements={identity.entitlements} canManageAccess={canManageSettings}/> }[page]);
-  return <div className="portal-shell"><Sidebar page={page} onPage={setPage} person={person} allowedNav={allowedNav} allowedSecondary={allowedSecondary} onLogout={signOut}/><div className="workspace"><Topbar page={page} onCommand={() => setCommand(true)}/><main className="main-content"><AnimatePresence mode="wait"><motion.div key={page} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}>{renderPage()}</motion.div></AnimatePresence></main></div><AnimatePresence>{command && <CommandPalette onClose={() => setCommand(false)} onPage={setPage} allowedModules={allowedModules}/>}</AnimatePresence></div>;
+  return <div className="portal-shell"><Sidebar page={page} onPage={setPage} person={person} allowedNav={allowedNav} allowedSecondary={allowedSecondary} onLogout={signOut}/><div className="workspace"><Topbar page={page} onCommand={() => setCommand(true)} allowedModules={allowedModules} onPage={setPage}/><main className="main-content"><AnimatePresence mode="wait"><motion.div key={page} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: .18 }}>{renderPage()}</motion.div></AnimatePresence></main></div><AnimatePresence>{command && <CommandPalette onClose={() => setCommand(false)} onPage={setPage} allowedModules={allowedModules}/>}</AnimatePresence></div>;
 }

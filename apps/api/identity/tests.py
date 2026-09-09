@@ -241,6 +241,17 @@ class KeycloakTokenTest(TestCase):
         self.assertEqual(response.json()["error"], "invalid_token")
 
     @patch("identity.keycloak.requests.get")
+    def test_expired_keycloak_token_returns_token_expired(self, get):
+        get.return_value = self.keycloak_response()
+        response = self.client.get(
+            "/api/portal-entitlements",
+            HTTP_AUTHORIZATION=f"Bearer {self.token(exp=timezone.now() - timedelta(minutes=1))}",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"], "token_expired")
+        self.assertEqual(response.json()["error_description"], "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+
+    @patch("identity.keycloak.requests.get")
     def test_disabled_django_user_is_rejected(self, get):
         get.return_value = self.keycloak_response()
         self.user.is_active = False

@@ -48,7 +48,7 @@ def signing_jwk(raw_token):
     try:
         header = jwt.get_unverified_header(raw_token)
     except jwt.PyJWTError as error:
-        raise IdentityError("invalid_token", "Token không hợp lệ hoặc đã hết hạn.", 401) from error
+        raise IdentityError("invalid_token", "Token không hợp lệ.", 401) from error
     if header.get("alg") != "RS256" or not isinstance(header.get("kid"), str):
         raise IdentityError("invalid_token", "Không được phép sử dụng thuật toán ký token.", 401)
 
@@ -82,8 +82,10 @@ def decode_token(raw_token):
             options={"require": ["exp", "sub", "iss", "aud"]},
         )
         subject = uuid.UUID(str(claims["sub"]))
+    except jwt.ExpiredSignatureError as error:
+        raise IdentityError("token_expired", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401) from error
     except (KeyError, TypeError, ValueError, jwt.PyJWTError) as error:
-        raise IdentityError("invalid_token", "Token không hợp lệ hoặc đã hết hạn.", 401) from error
+        raise IdentityError("invalid_token", "Token không hợp lệ.", 401) from error
 
     user = User.objects.filter(keycloak_id=subject, is_active=True).first()
     if not user:
