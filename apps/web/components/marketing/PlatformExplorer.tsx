@@ -34,7 +34,7 @@ export default function PlatformExplorer() {
     </div>
     <AnimatePresence mode="wait">
       <motion.article className="platform-preview" key={selectedModule.name} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }} transition={{ duration: .24 }}>
-        <div><div className="preview-icon" style={{ background: `linear-gradient(135deg, ${selectedModule.color}, #4ac1df)` }}><ModuleIcon /></div><div className="preview-label">QTS {selectedModule.name}</div><h3 className="preview-title">{selectedModule.caption}</h3><p className="preview-text">{selectedModule.description}</p></div>
+        <div><div className="preview-icon" style={{ background: "var(--ink)", color: "var(--mint)" }}><ModuleIcon /></div><div className="preview-label">QTS {selectedModule.name}</div><h3 className="preview-title">{selectedModule.caption}</h3><p className="preview-text">{selectedModule.description}</p></div>
         <div className="impact"><b>{selectedModule.value}</b><span>{selectedModule.impact}</span></div>
       </motion.article>
     </AnimatePresence>
