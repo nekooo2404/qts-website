@@ -27,7 +27,7 @@ export default function Page() {
         <Reveal delay={0.15}><div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}><Link href="/platform" className="btn btn-light">Khám phá nền tảng <ArrowRightIcon width={15} /></Link></div></Reveal>
       </div>
     </section>
-    <section className="section" style={{ background: "#f7f8fc" }}>
+    <section className="section" style={{ background: "var(--paper)" }}>
       <div className="container">
         <Reveal><div className="section-heading">
           <span className="eyebrow">Thiết kế theo mục tiêu doanh nghiệp</span>

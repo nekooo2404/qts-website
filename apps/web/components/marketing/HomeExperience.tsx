@@ -135,7 +135,8 @@ export default function HomeExperience() {
     <>
       <section className="hero noise" ref={heroRef}>
         <div className="container hero-grid">
-          <motion.div className="hero-copy" initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.2 } } }}>
+          <motion.div className="hero-copy" initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.08 } } }}>
+            <motion.span className="hero-kicker" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}>01 / HỆ ĐIỀU HÀNH SỐ</motion.span>
             <motion.span className="eyebrow" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}>Công nghệ doanh nghiệp, được xây dựng bài bản</motion.span>
             <motion.h1 className="display" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}>Xây dựng hạ tầng số cho tăng trưởng doanh nghiệp</motion.h1>
             <motion.p variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}>QTS phát triển phần mềm, nền tảng doanh nghiệp và hệ thống số thông minh có khả năng mở rộng.</motion.p>
@@ -144,6 +145,11 @@ export default function HomeExperience() {
               <Link href="/contact" className="btn btn-light">Trao đổi với chuyên gia</Link>
             </motion.div>
             <motion.div className="hero-meta" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}><span>Phần mềm · Dữ liệu · Đám mây · Tư vấn công nghệ</span></motion.div>
+            <motion.div className="operation-index" aria-label="Chỉ số vận hành minh hoạ" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } } }}>
+              <small>OPERATION INDEX — MINH HỌA</small>
+              <strong>07 mô-đun · 01 lõi dữ liệu</strong>
+              <span>Dữ liệu mô phỏng cho mục đích trình bày sản phẩm.</span>
+            </motion.div>
           </motion.div>
           <motion.div style={reducedMotion ? undefined : { y: parallaxY }}>
             <ProductPreview />
