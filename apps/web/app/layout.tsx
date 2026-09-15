@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi" className={`${fraunces.variable} ${manrope.variable} ${dmMono.variable}`}
+    <html lang="vi" className={`${fraunces.variable} ${manrope.variable} ${dmMono.variable}`}>
       <body>
         <MotionProvider>{children}</MotionProvider>
       </body>
