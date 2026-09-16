@@ -51,7 +51,7 @@ function NotificationToast() {
   return (
     <AnimatePresence>
       {show && (
-        <motion.div className="floating-note" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: DUR.base, ease: EASE }}>
+        <motion.div className="floating-note" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
           <i className="note-ai"><Icon /></i>
           <span><strong>{note.title}</strong>{note.body}</span>
         </motion.div>
@@ -65,7 +65,7 @@ function ProductPreview() {
   const barHeights = ["34%", "44%", "40%", "59%", "55%", "71%", "86%"];
 
   return (
-    <motion.div className="product-glow" initial={{ opacity: 0, y: 28, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.65, delay: 0.8, ease: EASE }}>
+    <motion.div className="product-glow" initial={{ opacity: 0, y: 28, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.65, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}>
       <div className="mock-app">
         <div className="mock-top"><i className="dot" /><i className="dot" /><i className="dot" /></div>
         <div className="mock-workspace">
@@ -84,7 +84,7 @@ function ProductPreview() {
               <div className="mock-panel"><div className="panel-head"><span>Chỉ số vận hành</span><span>Tháng 7</span></div>
                 <div className="signal-chart" aria-label="Biểu đồ minh họa chỉ số vận hành từ tháng 1 đến tháng 7">
                   {barHeights.map((h, i) => (
-                    <motion.i key={i} style={{ height: h, originY: 1 }} initial={{ scaleY: reducedMotion ? 1 : 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.5, delay: 1 + i * 0.08, ease: EASE }} />
+                    <motion.i key={i} style={{ height: h, originY: 1 }} initial={{ scaleY: reducedMotion ? 1 : 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.5, delay: 1 + i * 0.08, ease: [0.22, 1, 0.36, 1] }} />
                   ))}
                 </div>
               </div>
@@ -93,8 +93,8 @@ function ProductPreview() {
             <div className="mock-bottom">
               <div className="mock-panel"><div className="panel-head"><span>Sức khỏe hệ thống</span><span>↗</span></div><div className="score-ring"><CountUp to={96} delay={1.2} /></div></div>
               <div className="mock-panel"><div className="panel-head"><span>Tự động hóa quy trình</span><span>3 tác vụ</span></div>
-                <div className="workflow-row"><div className="workflow-label"><span>Xử lý đơn hàng</span><span>92%</span></div><div className="progress"><motion.span style={{ originX: 0, width: "92%", display: "block", height: "100%" }} initial={{ scaleX: reducedMotion ? 1 : 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.7, delay: 1.3, ease: EASE }} /></div></div>
-                <div className="workflow-row"><div className="workflow-label"><span>Kiểm tra chất lượng dữ liệu</span><span>74%</span></div><div className="progress"><motion.span style={{ originX: 0, width: "74%", display: "block", height: "100%" }} initial={{ scaleX: reducedMotion ? 1 : 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.7, delay: 1.45, ease: EASE }} /></div></div>
+                <div className="workflow-row"><div className="workflow-label"><span>Xử lý đơn hàng</span><span>92%</span></div><div className="progress"><motion.span style={{ originX: 0, width: "92%", display: "block", height: "100%" }} initial={{ scaleX: reducedMotion ? 1 : 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.7, delay: 1.3, ease: [0.22, 1, 0.36, 1] }} /></div></div>
+                <div className="workflow-row"><div className="workflow-label"><span>Kiểm tra chất lượng dữ liệu</span><span>74%</span></div><div className="progress"><motion.span style={{ originX: 0, width: "74%", display: "block", height: "100%" }} initial={{ scaleX: reducedMotion ? 1 : 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.7, delay: 1.45, ease: [0.22, 1, 0.36, 1] }} /></div></div>
               </div>
             </div>
           </div>
