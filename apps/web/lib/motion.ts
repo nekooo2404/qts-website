@@ -4,7 +4,7 @@ import type { Transition, Variants } from "framer-motion";
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
 /** Duration tiers (seconds). */
-export const DUR = { fast: 0.2, base: 0.3, slow: 0.5 };
+export const DUR = { fast: 0.18, base: 0.28, slow: 0.42 };
 
 /** Spring for the mega menu: settles in ~250ms. */
 export const SPRING_MENU: Transition = { type: "spring", stiffness: 380, damping: 30 };
@@ -29,8 +29,8 @@ export const megaMenu: Variants = {
   exit: { opacity: 0, y: -6, scale: 0.99, transition: { duration: DUR.fast, ease: "easeIn" } },
 };
 
-/** Parent container that staggers its children. */
-export function staggerContainer(delay = 0, stagger = 0.1): Variants {
+/** Parent container that staggers its children (80ms default cadence, 70-120ms spec band). */
+export function staggerContainer(delay = 0, stagger = 0.08): Variants {
   return {
     hidden: {},
     visible: { transition: { delayChildren: delay, staggerChildren: stagger } },
@@ -39,6 +39,6 @@ export function staggerContainer(delay = 0, stagger = 0.1): Variants {
 
 /** Child item used inside a stagger container. */
 export const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: DUR.slow, ease: EASE } },
 };

@@ -1,7 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
+import { DUR, EASE } from "@/lib/motion";
 
 type Variant = "up" | "scale" | "blur";
 
@@ -22,15 +23,16 @@ export default function Reveal({
   delay?: number;
   className?: string;
 }) {
+  const reducedMotion = useReducedMotion();
   const v = variants[variant];
   return (
     <motion.div
       className={className}
-      initial="hidden"
+      initial={reducedMotion ? false : "hidden"}
       whileInView="visible"
       viewport={{ once: true, amount: 0.2 }}
       variants={v as never}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay }}
+      transition={{ duration: reducedMotion ? 0 : DUR.slow, ease: EASE, delay: reducedMotion ? 0 : delay }}
     >
       {children}
     </motion.div>
