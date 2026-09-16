@@ -65,7 +65,12 @@ function ProductPreview() {
   const barHeights = ["34%", "44%", "40%", "59%", "55%", "71%", "86%"];
 
   return (
-    <motion.div className="product-glow" initial={{ opacity: 0, y: 28, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.65, delay: 0.8, ease: EASE }}>
+    <motion.div
+      className="product-glow"
+      initial={reducedMotion ? false : { opacity: 0, y: 28, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.65, delay: 0.8, ease: EASE }}
+    >
       <div className="mock-app">
         <div className="mock-top"><i className="dot" /><i className="dot" /><i className="dot" /></div>
         <div className="mock-workspace">
@@ -135,7 +140,7 @@ export default function HomeExperience() {
     <>
       <section className="hero noise" ref={heroRef}>
         <div className="container hero-grid">
-          <motion.div className="hero-copy" initial="hidden" animate="visible" variants={staggerContainer(0.1)}>
+          <motion.div className="hero-copy" initial={reducedMotion ? false : "hidden"} animate="visible" variants={staggerContainer(0.1)}>
             <motion.span className="hero-kicker" variants={staggerItem}>01 / HỆ ĐIỀU HÀNH SỐ</motion.span>
             <motion.span className="eyebrow" variants={staggerItem}>Công nghệ doanh nghiệp, được xây dựng bài bản</motion.span>
             <motion.h1 className="display" variants={staggerItem}>Xây dựng hạ tầng số cho tăng trưởng doanh nghiệp</motion.h1>
