@@ -84,7 +84,7 @@ export default function Page() {
       </div>
     </section>
 
-    <section className="section" style={{ background: "#f7f8fc" }}>
+    <section className="section" style={{ background: "var(--paper)" }}>
       <div className="container">
         <Reveal><div className="section-heading">
           <span className="eyebrow">Nội dung chọn lọc</span>

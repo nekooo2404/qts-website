@@ -35,7 +35,7 @@ export default function Page() {
         <Reveal delay={0.1}><PlatformExplorer /></Reveal>
       </div>
     </section>
-    <section className="section" style={{ background: "#f7f8fc" }}>
+    <section className="section" style={{ background: "var(--paper)" }}>
       <div className="container">
         <Reveal><div className="section-heading"><span className="eyebrow">Trải nghiệm sản phẩm</span><h2>Rõ ràng ở tốc độ vận hành doanh nghiệp.</h2><p>Mỗi tín hiệu, tác vụ và quyết định nằm trong giao diện giúp hoạt động phức tạp trở nên dễ hiểu.</p></div></Reveal>
         <Reveal delay={0.1}><ProductExperienceLazy /></Reveal>

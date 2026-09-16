@@ -55,7 +55,7 @@ export default function Page() {
           </div>
         </div></Reveal>
         <Reveal delay={0.15}><div className="case-dashboard" aria-label="Bản xem trước minh họa bảng điều khiển vận hành sản xuất">
-          <div className="case-dashboard-top"><span>Mô hình vận hành số</span><span style={{ color: "#6ee0b2" }}>● Dữ liệu trực tiếp</span></div>
+          <div className="case-dashboard-top"><span>Mô hình vận hành số</span><span className="live-dot">● Dữ liệu trực tiếp</span></div>
           <div className="case-body">
             <aside className="case-side"><p>Vận hành</p><i className="case-site-item active" /><i className="case-site-item" /><i className="case-site-item" /><i className="case-site-item" /></aside>
             <div className="case-visuals">

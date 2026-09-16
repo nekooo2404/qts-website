@@ -41,12 +41,12 @@ export default function Page() {
         <div className="detail-rows">
           {details.map(({ title, copy, points, icon: Icon }, i) => <Reveal key={title} delay={i * 0.08}><article className="detail-row">
             <i><Icon /></i>
-            <div><h3>{title}</h3><p>{copy}</p><ul style={{ margin: "12px 0 0", paddingLeft: 16, color: "#5b5e73", fontSize: 12, lineHeight: 1.6 }}>{points.map((p) => <li key={p}>{p}</li>)}</ul></div>
+            <div><h3>{title}</h3><p>{copy}</p><ul style={{ margin: "12px 0 0", paddingLeft: 16, color: "var(--muted)", fontSize: 12, lineHeight: 1.6 }}>{points.map((p) => <li key={p}>{p}</li>)}</ul></div>
           </article></Reveal>)}
         </div>
       </div>
     </section>
-    <section className="section" style={{ background: "#f7f8fc" }}>
+    <section className="section" style={{ background: "var(--paper)" }}>
       <div className="container">
         <Reveal><div className="section-heading">
           <span className="eyebrow">Tác động kinh doanh</span>
