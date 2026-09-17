@@ -102,7 +102,7 @@ a { color: inherit; text-decoration: none; }
 .product-glow::before { display: none; }
 .mock-app { border: 1px solid var(--line); overflow: hidden; border-radius: var(--radius-lg); background: var(--paper-strong); box-shadow: none; }
 .mock-top { height: 43px; padding: 0 14px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--paper-strong); }
-.dot { width: 7px; height: 7px; border-radius: 99px; background: var(--paper-strong); }
+.dot { width: 7px; height: 7px; border-radius: 99px; background: var(--line); }
 .mock-workspace { display: grid; grid-template-columns: 131px minmax(0,1fr); min-height: 412px; }
 .mock-sidebar { padding: 14px 11px; background: var(--paper-strong); border-right: 1px solid var(--paper-strong); }
 .mock-side-logo { padding: 3px 5px 16px; display: flex; align-items: center; gap: 6px; font-size: 9px; color: var(--muted); font-weight: 800; }
@@ -114,13 +114,13 @@ a { color: inherit; text-decoration: none; }
 .mock-content-header { display: flex; justify-content: space-between; align-items: center; }
 .mock-kicker { color: var(--muted); font-size: 8px; font-weight: 650; }
 .mock-title { margin: 4px 0 0; color: var(--ink-soft); font-size: 16px; letter-spacing: -.04em; font-weight: 750; }
-.live { display: flex; align-items: center; gap: 5px; color: var(--mint); font-size: 8px; font-weight: 700; }
-.live i { display: block; width: 6px; height: 6px; border-radius: 100%; background: var(--mint); box-shadow: 0 0 0 3px rgba(145,255,224,.13); }
+.live { display: flex; align-items: center; gap: 5px; color: var(--ink-soft); font-size: 8px; font-weight: 700; }
+.live i { display: block; width: 6px; height: 6px; border-radius: 100%; background: var(--signal); box-shadow: 0 0 0 3px rgba(237,90,55,.13); }
 .mock-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin-top: 17px; }
 .mock-stat { padding: 10px; min-height: 68px; border: 1px solid var(--paper-strong); border-radius: 9px; background: #fff; }
 .mock-stat label { color: #989bac; font-size: 7px; font-weight: 650; }
 .mock-stat strong { display: block; margin-top: 6px; color: var(--ink-soft); font-size: 14px; letter-spacing: -.06em; }
-.mock-stat small { display: inline-block; margin-top: 3px; color: var(--mint); font-size: 7px; font-weight: 700; }
+.mock-stat small { display: inline-block; margin-top: 3px; color: var(--ink-soft); font-size: 7px; font-weight: 700; }
 .mock-main-grid { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(105px,.7fr); gap: 10px; margin-top: 10px; }
 .mock-panel { overflow: hidden; border: 1px solid var(--paper-strong); border-radius: 10px; background: #fff; }
 .panel-head { height: 34px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; color: #74778b; font-size: 8px; font-weight: 700; }
@@ -236,7 +236,7 @@ a { color: inherit; text-decoration: none; }
 .ai-response p { color:var(--muted); font-size:11px; line-height:1.55; }
 .task-row { display:flex; align-items:center; gap:9px; padding:11px 0; border-bottom:1px solid var(--paper-strong); color:#63667a; font-size:11px; }
 .task-row:last-child { border-bottom:0; }
-.task-check { width:16px; height:16px; display:grid; place-items:center; border-radius:50%; color:white; background:var(--mint); font-size:9px; }
+.task-check { width:16px; height:16px; display:grid; place-items:center; border-radius:50%; color:var(--paper-strong); background:var(--ink); font-size:9px; }
 
 .industries { overflow:hidden; }
 .industries, .company-technology + .industries, .industries-hero { background:var(--ink-soft); color:var(--paper-strong); }
@@ -327,7 +327,7 @@ a { color: inherit; text-decoration: none; }
 .hp-field { position:absolute !important; left:-9999px; width:1px; height:1px; margin:0; padding:0; opacity:0; overflow:hidden; }
 .consent-row { display:flex; align-items:flex-start; gap:9px; color:var(--muted); font-size:11px; font-weight:500; line-height:1.5; }
 .consent-row input { width:15px; height:15px; margin:1px 0 0; flex:0 0 auto; accent-color:var(--signal); }
-.form-success { padding:14px; border-radius:10px; background:var(--paper-strong); color:var(--mint); font-size:12px; line-height:1.45; }
+.form-success { padding:14px; border-radius:10px; background:var(--paper-strong); color:var(--ink-soft); border:1px solid var(--line); font-size:12px; line-height:1.45; }
 
 .nav-link.active { color:var(--ink); font-weight:700; }
 .brand-dark { color:var(--paper-strong); }
