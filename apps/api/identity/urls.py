@@ -1,8 +1,12 @@
 from django.urls import path
 
-from . import views
+from . import views, ory_views
 
 urlpatterns = [
+    path("oauth/ory/login", ory_views.login, name="ory-login"),
+    path("oauth/ory/consent", ory_views.consent, name="ory-consent"),
+    path("oauth/ory/logout", ory_views.logout, name="ory-logout"),
+    path("oauth/ory/logout/accept", ory_views.logout_accept, name="ory-logout-accept"),
     path(".well-known/openid-configuration", views.discovery, name="oidc-discovery"),
     path("oauth/jwks.json", views.jwks_view, name="oidc-jwks"),
     path("oauth/csrf", views.csrf, name="identity-csrf"),
@@ -19,4 +23,6 @@ urlpatterns = [
     path("api/portal-entitlements", views.portal_entitlements, name="identity-portal-entitlements"),
     path("api/console/security-overview", views.security_overview, name="identity-security-overview"),
     path("api/console/audit-events", views.audit_events, name="identity-audit-events"),
+    path("api/enrollment/complete", views.enrollment_complete, name="identity-enrollment-complete"),
+    path("api/admin/users", views.admin_users, name="identity-admin-users"),
 ]
