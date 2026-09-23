@@ -26,7 +26,7 @@ export function IndustryEcosystemMap() {
         priority
         sizes="(max-width: 950px) 100vw, 52vw"
       />
-      <figcaption>Ảnh minh họa bối cảnh — không mô tả cơ sở hay khách hàng QTS.</figcaption>
+      <figcaption>Ảnh minh hoạ bối cảnh ngành; quy trình bám tài liệu Việt Nam — không mô tả cơ sở hay khách hàng QTS.</figcaption>
     </motion.figure>
   );
 }
@@ -52,7 +52,7 @@ export function IndustryBento() {
               <span className="industry-bento-pill"><IndustryIcon />{industry.name}</span>
             </div>
             <div className="industry-bento-body">
-              <span className="industry-bento-client">Quy trình vận hành thực tế · Có nguồn</span>
+              <span className="industry-bento-client">Quy trình thực tế tại Việt Nam · Có nguồn VN</span>
               <dl>
                 <div><dt>Thực tế vận hành</dt><dd>{industry.challenge}</dd></div>
                 <div><dt>Mô hình chuẩn</dt><dd>{industry.solution}</dd></div>

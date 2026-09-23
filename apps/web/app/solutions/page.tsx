@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRightIcon, CloudIcon, CommandLineIcon, GlobeAltIcon, SparklesIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
 import MarketingShell from "@/components/marketing/MarketingShell";
@@ -6,19 +6,23 @@ import PageHero from "@/components/marketing/PageHero";
 import SolutionsBento from "@/components/marketing/SolutionsBento";
 import CallToAction from "@/components/marketing/CallToAction";
 import Reveal from "@/components/marketing/Reveal";
+import ProofPointShowcase from "@/components/marketing/ProofPointShowcase";
+import { solutionProofPoints } from "@/lib/marketing-proof-points";
+import { solutionThemes } from "@/lib/solution-catalog";
 
-export const metadata: Metadata = {
-  title: "Giải pháp — QTS",
+export const metadata = buildMetadata({
+  title: "Giải pháp - QTS",
   description: "Phần mềm doanh nghiệp, nền tảng SaaS, AI, hệ thống đám mây và ứng dụng web được xây dựng cho hiệu quả kinh doanh.",
-};
+  path: "/solutions",
+});
 
-const details = [
-  { title: "Phần mềm doanh nghiệp", copy: "Hệ thống cốt lõi thay thế bảng tính và công cụ rời rạc bằng một mô hình vận hành thống nhất.", icon: Squares2X2Icon, points: ["Hợp nhất dữ liệu vận hành, tài chính và giao hàng", "Quy trình có thể kiểm tra với phân quyền theo vai trò"] },
-  { title: "Nền tảng SaaS", copy: "Sản phẩm có khả năng mở rộng, ưu tiên API và sẵn sàng phát triển theo thị trường.", icon: GlobeAltIcon, points: ["Nền tảng đa khách hàng với khả năng mở rộng an toàn", "Thiết kế hướng tới khả năng áp dụng và phát triển"] },
-  { title: "Giải pháp AI", copy: "Trí tuệ được tích hợp vào luồng công việc để đội ngũ nhận diện rủi ro và ra quyết định tự tin hơn.", icon: SparklesIcon, points: ["Dự báo, đề xuất và trợ lý công việc", "Đầu ra đáng tin cậy với giám sát của con người"] },
-  { title: "Hệ thống đám mây", copy: "Nền tảng hiện đại có khả năng mở rộng và duy trì triển khai bền vững.", icon: CloudIcon, points: ["Dịch vụ có thể kết hợp với quy trình phát hành rõ ràng", "Kết nối an toàn và khả năng quan sát hệ thống"] },
-  { title: "Ứng dụng web", copy: "Trải nghiệm số hiệu năng cao giúp hoạt động kinh doanh tiến về phía trước.", icon: CommandLineIcon, points: ["Giao diện hiệu năng cao và dễ tiếp cận", "Từ hệ thống quản trị đến sản phẩm cho khách hàng"] },
-];
+const iconMap = {
+  enterprise: Squares2X2Icon,
+  platform: GlobeAltIcon,
+  ai: SparklesIcon,
+  cloud: CloudIcon,
+  web: CommandLineIcon,
+} as const;
 
 export default function Page() {
   return <MarketingShell>
@@ -30,6 +34,13 @@ export default function Page() {
         <Link href="/platform" className="btn btn-light">Khám phá nền tảng</Link>
       </div>
     </PageHero>
+    <ProofPointShowcase
+      eyebrow="Luồng vận hành theo giải pháp"
+      title="Mỗi nhóm giải pháp có một luồng vận hành để nhìn rõ mục tiêu sản phẩm."
+      copy="Các luồng vận hành này giúp phân biệt phần mềm doanh nghiệp, nền tảng phần mềm, AI và đám mây bằng dữ liệu, quyền và quyết định cụ thể thay vì chỉ bằng danh sách tính năng."
+      items={solutionProofPoints}
+      tone="paper"
+    />
     <section className="section">
       <div className="container">
         <Reveal><div className="section-heading">
@@ -39,10 +50,13 @@ export default function Page() {
         </div></Reveal>
         <Reveal delay={0.1}><SolutionsBento /></Reveal>
         <div className="detail-rows">
-          {details.map(({ title, copy, points, icon: Icon }, i) => <Reveal key={title} delay={i * 0.08}><article className="detail-row">
-            <i><Icon /></i>
-            <div><h3>{title}</h3><p>{copy}</p><ul style={{ margin: "12px 0 0", paddingLeft: 16, color: "var(--muted)", fontSize: 12, lineHeight: 1.6 }}>{points.map((p) => <li key={p}>{p}</li>)}</ul></div>
-          </article></Reveal>)}
+          {solutionThemes.map(({ title, description, icon, slug, topics }, i) => {
+            const Icon = iconMap[icon];
+            return <Reveal key={slug} delay={i * 0.08}><article className="detail-row">
+              <i><Icon /></i>
+              <div><h3><Link href={`/solutions/${slug}`}>{title}</Link></h3><p>{description}</p><ul style={{ margin: "12px 0 0", paddingLeft: 16, color: "var(--muted)", fontSize: 12, lineHeight: 1.6 }}>{topics.slice(0, 2).map((p) => <li key={p}>{p}</li>)}</ul></div>
+            </article></Reveal>;
+          })}
         </div>
       </div>
     </section>

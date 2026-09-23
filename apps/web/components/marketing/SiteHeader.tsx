@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { featuredResource } from "@/components/marketing/resources/catalog";
@@ -17,15 +18,14 @@ const navigation = [
 ];
 
 const exploreLinks = [
-  { label: "Tình huống ứng dụng", href: "/resources/case-studies", copy: "Mô hình tham khảo cho các bài toán vận hành doanh nghiệp." },
+  { label: "Bối cảnh ngành Việt Nam", href: "/resources/case-studies", copy: "Quy trình và chỉ dấu từ nguồn công khai — không phải kết quả khách hàng." },
   { label: "Hướng dẫn giải pháp", href: "/resources/solutions-guides", copy: "Cẩm nang xây dựng nền tảng và quy trình có khả năng mở rộng." },
   { label: "Góc nhìn công nghệ", href: "/resources/technology-insights", copy: "Phân tích về AI, đám mây và kiến trúc doanh nghiệp." },
 ];
 
 const researchLinks = [
-  { label: "Chuyên khảo", href: "/resources/white-papers", copy: "Tài liệu phục vụ quyết định đầu tư nền tảng dài hạn." },
-  { label: "Cập nhật sản phẩm", href: "/resources/product-updates", copy: "Thông tin mới về nền tảng QTS." },
-  { label: "Báo cáo chuyển đổi số", href: "/resources/white-papers", copy: "Báo cáo Chuyển đổi số Doanh nghiệp 2026." },
+  { label: "Thư viện kiến trúc", href: "/resources/white-papers", copy: "Tuyển tập khung kiến trúc kèm nguồn chính thức để đọc sâu." },
+  { label: "Theo dõi chủ đề", href: "/resources/product-updates", copy: "Tổng hợp ngắn gọn theo chủ đề — không hàm ý mốc phát hành cụ thể." },
 ];
 
 export function QtsMark({ className = "" }: { className?: string }) {
@@ -42,24 +42,33 @@ export function Brand({ dark = false }: { dark?: boolean }) {
 
 export default function SiteHeader() {
   const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const resourcesRef = useRef<HTMLDivElement | null>(null);
   const resourcesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const resourcesOpenedByHover = useRef(false);
   const mobileRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileClosingRef = useRef(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 20);
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
+  const restoreMenuFocus = useCallback(() => {
+    const focusTrigger = () => menuButtonRef.current?.focus({ preventScroll: true });
+    focusTrigger();
+    requestAnimationFrame(focusTrigger);
+    window.setTimeout(focusTrigger, 120);
   }, []);
+
+  const closeMobileMenu = useCallback(() => {
+    mobileClosingRef.current = true;
+    setOpen(false);
+    restoreMenuFocus();
+  }, [restoreMenuFocus]);
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => setResourcesOpen(false), [pathname]);
+  useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
     if (!resourcesOpen) return;
@@ -82,41 +91,100 @@ export default function SiteHeader() {
 
   useEffect(() => {
     if (!open) return;
+    mobileClosingRef.current = false;
+    const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const first = mobileRef.current?.querySelector<HTMLElement>("a, button");
-    first?.focus();
+    const background = [...document.querySelectorAll<HTMLElement>("main, footer")];
+    const previous = background.map(element => element.inert);
+    background.forEach(element => { element.inert = true; });
+    const focusTimer = window.setTimeout(() => {
+      if (mobileRef.current?.contains(document.activeElement)) return;
+      mobileRef.current?.querySelector<HTMLElement>("a[href],button:not([disabled])")?.focus();
+    }, 80);
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
-        menuButtonRef.current?.focus();
+        closeMobileMenu();
+        return;
       }
+      if (event.key !== "Tab") return;
+      const controls = [...(mobileRef.current?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])') ?? [])].filter(el => el.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     }
-    document.addEventListener("keydown", handleKey);
+    const wide = window.matchMedia("(min-width: 701px)");
+    const closeIfWide = () => { if (wide.matches || window.innerWidth > 700) setOpen(false); };
+    wide.addEventListener("change", closeIfWide);
+    window.addEventListener("resize", closeIfWide);
+    document.addEventListener("keydown", handleKey, true);
     return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = overflow;
+      window.clearTimeout(focusTimer);
+      background.forEach((element, index) => { element.inert = previous[index]; });
+      document.removeEventListener("keydown", handleKey, true);
+      wide.removeEventListener("change", closeIfWide);
+      window.removeEventListener("resize", closeIfWide);
+      restoreMenuFocus();
     };
-  }, [open]);
+  }, [closeMobileMenu, open, restoreMenuFocus]);
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   const openMega = useCallback(() => {
     if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+    if (!resourcesOpen) resourcesOpenedByHover.current = true;
     setResourcesOpen(true);
-  }, []);
+  }, [resourcesOpen]);
 
   const closeMega = useCallback(() => {
-    closeTimerRef.current = setTimeout(() => setResourcesOpen(false), 120);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      if (!resourcesRef.current?.contains(document.activeElement)) setResourcesOpen(false);
+    }, 120);
   }, []);
+
+  const trapMobileFocus = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      closeMobileMenu();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')].filter(el => el.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  }, [closeMobileMenu]);
+
+  const getMobileControls = useCallback(() => [...(mobileRef.current?.querySelectorAll<HTMLElement>('a[href],button:not([disabled])') ?? [])].filter(el => el.getClientRects().length), []);
+  const focusFirstMobileControl = useCallback(() => {
+    if (mobileClosingRef.current) return;
+    getMobileControls()[0]?.focus();
+  }, [getMobileControls]);
+  const focusLastMobileControl = useCallback(() => {
+    if (mobileClosingRef.current) return;
+    const controls = getMobileControls();
+    controls.at(-1)?.focus();
+  }, [getMobileControls]);
 
   const resourcesActive = pathname.startsWith("/resources");
   const allMobileLinks = [...exploreLinks, ...researchLinks];
 
-  return <header className={`nav ${scrolled ? "scrolled" : ""}`}>
+  return <header className="nav">
     <div className="container nav-inner">
       <Brand />
       <nav className="nav-links" aria-label="Điều hướng chính">
         {navigation.slice(0, 3).map((item) => <Link key={item.href} href={item.href} className={`nav-link ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}
-        <div className="nav-mega-wrap" ref={resourcesRef} onMouseEnter={openMega} onMouseLeave={closeMega}>
-          <button ref={resourcesButtonRef} type="button" className={`nav-link nav-mega-trigger ${resourcesActive ? "active" : ""} ${resourcesOpen ? "open" : ""}`} aria-expanded={resourcesOpen} aria-controls="resources-mega-menu" onClick={() => setResourcesOpen((value) => !value)}>
+        <div className="nav-mega-wrap" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setResourcesOpen(false); }} ref={resourcesRef} onMouseEnter={openMega} onMouseLeave={closeMega}>
+          <button ref={resourcesButtonRef} type="button" className={`nav-link nav-mega-trigger ${resourcesActive ? "active" : ""} ${resourcesOpen ? "open" : ""}`} aria-expanded={resourcesOpen} aria-controls="resources-mega-menu" disabled={!hydrated} onClick={() => {
+            resourcesOpenedByHover.current = false;
+            setResourcesOpen(true);
+          }}>
             Tài nguyên <ChevronDownIcon width={12} aria-hidden="true" />
           </button>
           <AnimatePresence>
@@ -144,7 +212,7 @@ export default function SiteHeader() {
                   <Link href={featuredResource.href} className="nav-mega-feature">
                     <span className="nav-mega-kicker">Nội dung nổi bật</span>
                     <span className="nav-mega-feature-cover" aria-hidden="true">
-                      <Image src="/images/resources/manufacturing-operations.svg" alt="" fill sizes="360px" />
+                      <Image src={featuredResource.image} alt="" fill sizes="360px" />
                     </span>
                     <strong>{featuredResource.title}</strong>
                     <span>{featuredResource.description}</span>
@@ -158,25 +226,50 @@ export default function SiteHeader() {
         {navigation.slice(3).map((item) => <Link key={item.href} href={item.href} className={`nav-link ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}
       </nav>
       <Link className="btn btn-dark nav-cta" href="/contact">Yêu cầu tư vấn</Link>
-      <button ref={menuButtonRef} className="nav-menu" type="button" aria-label="Mở hoặc đóng điều hướng" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button ref={menuButtonRef} className="nav-menu" type="button" aria-label="Mở hoặc đóng điều hướng" aria-controls="mobile-navigation" aria-expanded={open} disabled={!hydrated} onClick={() => setOpen(!open)}>
         {open ? <XMarkIcon width={22} /> : <Bars3Icon width={22} />}
       </button>
     </div>
 
-    <AnimatePresence>
+    {hydrated && createPortal(<AnimatePresence>
       {open && (
         <motion.div
           ref={mobileRef}
           className="mobile-overlay"
+          role="dialog" aria-modal="true" id="mobile-navigation"
+          onClick={event => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}
+          onKeyDownCapture={trapMobileFocus}
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", stiffness: 300, damping: 32 }}
           aria-label="Điều hướng trên thiết bị di động"
         >
+          <span className="focus-guard" tabIndex={0} aria-label="Quay lại cuối trình đơn" onFocus={focusLastMobileControl} />
           <div className="mobile-overlay-top">
-            <Brand />
-            <button type="button" aria-label="Đóng trình đơn" onClick={() => { setOpen(false); menuButtonRef.current?.focus(); }}>
+            <Link
+              href="/"
+              className="brand"
+              aria-label="Trang chủ QTS"
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  closeMobileMenu();
+                  return;
+                }
+                if (event.key === "Tab" && event.shiftKey) {
+                  event.preventDefault();
+                  focusLastMobileControl();
+                }
+              }}
+              onBlur={(event) => {
+                if (mobileClosingRef.current) return;
+                const next = event.relatedTarget as HTMLElement | null;
+                if (!next || next.classList.contains("focus-guard") || !mobileRef.current?.contains(next)) requestAnimationFrame(focusLastMobileControl);
+              }}
+            >
+              <QtsMark />QTS
+            </Link>
+            <button type="button" aria-label="Đóng trình đơn" onClick={closeMobileMenu}>
               <XMarkIcon width={24} />
             </button>
           </div>
@@ -194,11 +287,32 @@ export default function SiteHeader() {
             ))}
           </nav>
           <div className="mobile-overlay-cta">
-            <Link className="btn btn-primary" href="/contact">Yêu cầu tư vấn</Link>
+            <Link
+              className="btn btn-primary"
+              href="/contact"
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  closeMobileMenu();
+                  return;
+                }
+                if (event.key === "Tab" && !event.shiftKey) {
+                  event.preventDefault();
+                  focusFirstMobileControl();
+                }
+              }}
+              onBlur={(event) => {
+                if (mobileClosingRef.current) return;
+                const next = event.relatedTarget as HTMLElement | null;
+                if (!next || next.classList.contains("focus-guard") || !mobileRef.current?.contains(next)) requestAnimationFrame(focusFirstMobileControl);
+              }}
+            >
+              Yêu cầu tư vấn
+            </Link>
           </div>
+          <span className="focus-guard" tabIndex={0} aria-label="Quay lại đầu trình đơn" onFocus={focusFirstMobileControl} />
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>, document.body)}
   </header>;
 }
 
