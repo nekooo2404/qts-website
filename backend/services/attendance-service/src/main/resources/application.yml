@@ -1,0 +1,55 @@
+server:
+  port: ${PORT:8083}
+  shutdown: graceful
+
+spring:
+  application:
+    name: qts-attendance-service
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_SHUTDOWN_TIMEOUT:30s}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/qts}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:1}
+      connection-timeout: 5000
+      validation-timeout: 3000
+  flyway:
+    enabled: ${ATTENDANCE_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    table: flyway_schema_history_attendance_service
+    baseline-on-migrate: ${ATTENDANCE_FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${ATTENDANCE_FLYWAY_BASELINE_VERSION:0}
+    validate-on-migrate: true
+  data:
+    redis:
+      url: ${QTS_EVENT_STREAM_URL:redis://localhost:6379/3}
+  jackson:
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+
+qts:
+  attendance:
+    max-events: ${ATTENDANCE_SYNC_MAX_EVENTS:200}
+    offline-window: ${ATTENDANCE_OFFLINE_WINDOW:PT24H}
+    online-skew: ${ATTENDANCE_ONLINE_SKEW:PT5M}
+    assertion-max-ttl: ${ATTENDANCE_ASSERTION_MAX_TTL:PT24H}
+    assertion-future-skew: ${ATTENDANCE_ASSERTION_FUTURE_SKEW:PT60S}
+    security-enabled: ${QTS_SECURITY_ENABLED:true}
+    identity-issuer: ${QTS_IDENTITY_ISSUER:}
+    identity-jwk-set-uri: ${QTS_IDENTITY_JWK_SET_URI:}
+    identity-audience: ${QTS_IDENTITY_AUDIENCE:qts-api}
+    device-rate: ${ATTENDANCE_SYNC_DEVICE_RATE:120/min}
+    tenant-rate: ${ATTENDANCE_SYNC_TENANT_RATE:1200/min}

@@ -1,0 +1,7 @@
+{
+  "accepts_wrong_discovery_issuer_expired_wrong_audience_unsigned_id_token": true,
+  "network_error_deletes_pkce_transaction": true,
+  "temporary_network_error_reported_as_expired": "SessionExpiredError",
+  "temporary_network_error_deletes_refresh_token": true,
+  "logout_sends_id_token_hint": false
+}

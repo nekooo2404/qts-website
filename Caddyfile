@@ -1,30 +1,56 @@
-# QTS reverse proxy (Caddy) — production domains qtsgroup.vn
+# QTS reverse proxy (Caddy) - production domains qtsgroup.vn
 # Caddy auto-issues Let's Encrypt certs on port 443.
 # Compose ports stay localhost-only in production.
 
-# www is not canonical — 308 to the apex so search engines see one host
+# www is not canonical - 308 to the apex so search engines see one host
 www.qtsgroup.vn {
 	redir https://qtsgroup.vn{uri} 308
 }
 
-# Marketing site (Next.js web app) + Identity Center under /identity
+# Marketing site (Next.js web app); retired Identity path redirects to SSO
 qtsgroup.vn {
-	handle /api/* {
-		reverse_proxy localhost:8000
+	@blocked path /api/docs/* /api/docs /api/schema/* /api/schema
+	respond @blocked 404
+	@private path /api/* /oauth/* /.well-known/* /identity*
+	header @private {
+		Cache-Control "no-store"
+		Pragma "no-cache"
 	}
-	handle /identity* {
-		reverse_proxy localhost:3001
+	@marketing_leads path /api/v1/leads /api/v1/leads/*
+	handle @marketing_leads {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy localhost:18081
+	}
+	handle /api/* {
+		respond 404
+	}
+	@retired_marketing_identity path /identity /identity/*
+	handle @retired_marketing_identity {
+		uri strip_prefix /identity
+		redir https://sso.qtsgroup.vn{uri} 308
 	}
 	handle {
 		reverse_proxy localhost:3000
 	}
 	header {
-		# Security headers cho production
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		-X-Powered-By
 	}
+	@identity path /identity*
+	header @identity {
+		X-Frame-Options "DENY"
+	}
+	@media path /cms-media/* /_next/static/*
+	header @media Cache-Control "public, max-age=31536000, immutable"
 	encode zstd gzip
 }
 
@@ -32,31 +58,136 @@ qtsgroup.vn {
 portal.qtsgroup.vn {
 	reverse_proxy localhost:5174
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
-	}
-	encode zstd gzip
-}
-
-# Django REST API — admin, Swagger and the OpenAPI schema stay private
-api.qtsgroup.vn {
-	@blocked path /admin/* /api/docs/* /api/schema/*
-	respond @blocked 404
-	reverse_proxy localhost:8000
-	header {
+		Cache-Control "no-store"
+		Pragma "no-cache"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; connect-src 'self' https://api.qtsgroup.vn https://sso.qtsgroup.vn; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		-Server
+		-X-Powered-By
 	}
 	encode zstd gzip
 }
 
-# Keycloak SSO (admin console + token endpoints)
-sso.qtsgroup.vn {
-	reverse_proxy localhost:8081
+# Spring REST API - admin, Swagger and the OpenAPI schema stay private
+api.qtsgroup.vn {
+	@blocked path /admin /admin/* /api/docs/* /api/schema/*
+	respond @blocked 404
+	request_body {
+		max_size 1MB
+	}
+	@api_cors_origin header_regexp Origin ^https://(hrm|portal)\.qtsgroup\.vn$|^https://qtsgroup\.vn$
+	@api_cors_preflight {
+		method OPTIONS
+		header_regexp Origin ^https://(hrm|portal)\.qtsgroup\.vn$|^https://qtsgroup\.vn$
+	}
+	handle @api_cors_preflight {
+		header {
+			Access-Control-Allow-Origin "{http.request.header.Origin}"
+			Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-CSRF-Token, X-Requested-With"
+			Access-Control-Max-Age "600"
+			Access-Control-Expose-Headers "Cache-Control, Pragma, Content-Type"
+			Vary "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+		}
+		respond "" 204
+	}
+	header @api_cors_origin {
+		?Access-Control-Allow-Origin "{http.request.header.Origin}"
+		?Access-Control-Expose-Headers "Cache-Control, Pragma, Content-Type"
+		Vary "Origin"
+	}
+	@identity_admin path /oauth/userinfo /oauth/userinfo/ /oauth/csrf /oauth/csrf/ /api/session /api/session/ /api/launcher /api/launcher/ /api/portal-entitlements /api/portal-entitlements/ /api/sessions /api/sessions/* /api/console/* /api/enrollment/complete /api/enrollment/complete/ /api/admin /api/admin/* /api/v1/identity /api/v1/identity/*
+	handle @identity_admin {
+		reverse_proxy localhost:18084
+	}
+	@lead_api path /api/v1/leads /api/v1/leads/*
+	handle @lead_api {
+		reverse_proxy localhost:18081
+	}
+	@attendance_api path /api/v1/attendance /api/v1/attendance/*
+	handle @attendance_api {
+		reverse_proxy localhost:18083
+	}
+	@hrm_employee_api path /api/v1/employees /api/v1/employees/*
+	handle @hrm_employee_api {
+		reverse_proxy localhost:18086
+	}
+	@hrm_org_api path /api/v1/organizations /api/v1/organizations/*
+	handle @hrm_org_api {
+		reverse_proxy localhost:18086
+	}
+	handle {
+		respond 404
+	}
 	header {
+		Cache-Control "no-store"
+		Pragma "no-cache"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+		-X-Powered-By
 	}
+	encode zstd gzip
+}
+
+# QTS SSO: Identity UI is the domain root; Ory Hydra public API owns only OIDC endpoints.
+# Hydra administrative API stays private.
+sso.qtsgroup.vn {
+	@retired_identity path /identity /identity/*
+	handle @retired_identity {
+		uri strip_prefix /identity
+		redir {uri} 308
+	}
+	@hydra_discovery path /.well-known/openid-configuration /.well-known/jwks.json
+	handle @hydra_discovery {
+		reverse_proxy localhost:4444
+	}
+	@hydra_public path /oauth2 /oauth2/* /userinfo /userinfo/* /health /health/*
+	handle @hydra_public {
+		reverse_proxy localhost:4444
+	}
+	handle {
+		reverse_proxy localhost:3001
+	}
+	header {
+		Cache-Control "no-store"
+		Pragma "no-cache"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		-Server
+		-X-Powered-By
+	}
+}
+
+hrm.qtsgroup.vn {
+	reverse_proxy localhost:5175
+	header {
+		Cache-Control "no-store"
+		Pragma "no-cache"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; connect-src 'self' https://api.qtsgroup.vn https://sso.qtsgroup.vn; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		-Server
+		-X-Powered-By
+	}
+	encode zstd gzip
 }

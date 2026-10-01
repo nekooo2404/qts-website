@@ -1,0 +1,372 @@
+name: spring-production-gate
+
+on:
+  pull_request:
+    paths:
+      - "backend/services/**"
+      - "pom.xml"
+      - "docker-compose.yml"
+      - "docker-compose.prod.yml"
+      - "docker-compose.spring.yml"
+      - "docker-compose.spring.prod.yml"
+      - "docker-compose.spring.cutover.yml"
+      - ".github/workflows/spring-production-gate.yml"
+      - "scripts/spring-production-gate.*"
+      - "apps/api/**"
+      - "infra/keycloak/**"
+      - "infra/legacy/**"
+      - "**/*.py"
+      - "**/manage.py"
+      - "**/requirements*.txt"
+      - "**/Pipfile"
+      - "**/pyproject.toml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "backend/services/**"
+      - "pom.xml"
+      - "docker-compose.yml"
+      - "docker-compose.prod.yml"
+      - "docker-compose.spring.yml"
+      - "docker-compose.spring.prod.yml"
+      - "docker-compose.spring.cutover.yml"
+      - ".github/workflows/spring-production-gate.yml"
+      - "scripts/spring-production-gate.*"
+      - "apps/api/**"
+      - "infra/keycloak/**"
+      - "infra/legacy/**"
+      - "**/*.py"
+      - "**/manage.py"
+      - "**/requirements*.txt"
+      - "**/Pipfile"
+      - "**/pyproject.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  spring-cutover-guard:
+    name: Spring cutover guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Reject retired backend surfaces
+        run: |
+          legacy_files="$(git ls-files | grep -E '(^|/)(apps/api|infra/keycloak|infra/legacy)(/|$)|(^|/)manage\.py$|requirements.*\.txt$|Pipfile$|pyproject\.toml$|\.py$' || true)"
+          if [ -n "$legacy_files" ]; then
+            printf 'Retired backend files are not allowed after Spring cutover:\n%s\n' "$legacy_files" >&2
+            exit 1
+          fi
+
+          legacy_text="$(grep -RInE 'keycloak|django|apps/api|manage\.py|requirements\.txt|gunicorn|celery|python backend|legacy backend' \
+            backend/services \
+            docker-compose.yml \
+            docker-compose.prod.yml \
+            docker-compose.spring.yml \
+            docker-compose.spring.prod.yml \
+            docker-compose.spring.cutover.yml \
+            package.json \
+            README.md \
+            DEPLOYMENT.md \
+            docs/specs \
+            docs/architecture || true)"
+          if [ -n "$legacy_text" ]; then
+            printf 'Retired backend references are not allowed in active Spring/deployment surfaces:\n%s\n' "$legacy_text" >&2
+            exit 1
+          fi
+
+      - name: Verify Spring Dockerfile hardening
+        run: |
+          found=0
+          while IFS= read -r dockerfile; do
+            found=1
+            for required in \
+              'FROM eclipse-temurin:21-jre-alpine' \
+              'adduser -S qts' \
+              'USER qts' \
+              '-XX:MaxRAMPercentage=75' \
+              '-XX:+ExitOnOutOfMemoryError' \
+              '-Dfile.encoding=UTF-8' \
+              '-Dsun.jnu.encoding=UTF-8'; do
+              if ! grep -Fq -- "$required" "$dockerfile"; then
+                printf "Spring Dockerfile hardening missing '%s' in %s\n" "$required" "$dockerfile" >&2
+                exit 1
+              fi
+            done
+          done < <(find backend/services -name Dockerfile -type f | sort)
+
+          if [ "$found" -eq 0 ]; then
+            printf 'No Spring service Dockerfiles found.\n' >&2
+            exit 1
+          fi
+
+      - name: Verify API no-store filters
+        run: |
+          for service in backend/services/*; do
+            [ -d "$service" ] || continue
+            main_java="$service/src/main/java"
+            [ -d "$main_java" ] || continue
+
+            if grep -RqsE '@RestController|@Controller' "$main_java"; then
+              if ! grep -RqsE 'class NoStoreFilter|Cache-Control.*no-store|no-store' "$main_java"; then
+                printf "Spring API service '%s' has controllers but no no-store response filter.\n" "$(basename "$service")" >&2
+                exit 1
+              fi
+            fi
+          done
+
+  maven-test:
+    name: Maven test / ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: spring-cutover-guard
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - lead-service
+          - event-service
+          - attendance-service
+          - identity-admin-service
+          - identity-bridge-service
+          - hrm-service
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Test
+        working-directory: backend/services/${{ matrix.service }}
+        run: mvn -B test
+
+  docker-build:
+    name: Docker build / ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: dependency-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - lead-service
+          - event-service
+          - attendance-service
+          - identity-admin-service
+          - identity-bridge-service
+          - hrm-service
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build image
+        run: |
+          docker build \
+            --file "backend/services/${{ matrix.service }}/Dockerfile" \
+            --tag "qts-${{ matrix.service }}:${{ github.sha }}" \
+            .
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37 # v0.31.0
+        with:
+          image-ref: "qts-${{ matrix.service }}:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-${{ matrix.service }}.sarif"
+          severity: "CRITICAL"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@d8073367669608af8fbcc5f63dd0a0d52bb90cff # v4
+        with:
+          sarif_file: "trivy-${{ matrix.service }}.sarif"
+
+  dependency-scan:
+    name: Dependency scan / ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: maven-test
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - lead-service
+          - event-service
+          - attendance-service
+          - identity-admin-service
+          - identity-bridge-service
+          - hrm-service
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Scan source dependencies for high/critical vulnerabilities
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37 # v0.31.0
+        with:
+          scan-type: "fs"
+          scan-ref: "backend/services/${{ matrix.service }}"
+          format: "sarif"
+          output: "trivy-fs-${{ matrix.service }}.sarif"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy dependency SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@d8073367669608af8fbcc5f63dd0a0d52bb90cff # v4
+        with:
+          sarif_file: "trivy-fs-${{ matrix.service }}.sarif"
+
+  compose-config:
+    name: Compose overlay validation
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate compose overlay
+        env:
+          POSTGRES_DB: qts
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: compose-validation-only
+          ORY_HYDRA_DB_PASSWORD: hydra-validation-only
+          ORY_KRATOS_DB_PASSWORD: kratos-validation-only
+          ORY_HYDRA_DSN: "postgres://hydra:hydra-validation-only@hydra-db:5432/hydra?sslmode=disable"
+          ORY_KRATOS_DSN: "postgres://kratos:kratos-validation-only@kratos-db:5432/kratos?sslmode=disable"
+          ORY_HYDRA_SYSTEM_SECRET: hydra-system-validation-only
+          ORY_KRATOS_COOKIE_SECRET: kratos-cookie-validation-only
+          ORY_KRATOS_CIPHER_SECRET: kratos-cipher-validation-only
+          IDENTITY_SIGNING_KEY_PASSPHRASE: identity-validation-only
+          CORS_ALLOWED_ORIGINS: "https://portal.example.invalid,https://hrm.example.invalid"
+          QTS_SECURITY_CORS_ALLOWED_ORIGINS: "https://sso.example.invalid,https://portal.example.invalid,https://hrm.example.invalid"
+          IDENTITY_ISSUER: https://api.example.invalid
+          IDENTITY_WEB_ORIGIN: https://sso.example.invalid
+          ORY_HYDRA_ISSUER_BROWSER_URL: https://sso.example.invalid/
+          ORY_KRATOS_BROWSER_URL: https://sso.example.invalid/kratos
+          VITE_IDENTITY_ISSUER: https://sso.example.invalid/
+          VITE_API_ISSUER: https://api.example.invalid
+          VITE_IDENTITY_WEB_ORIGIN: https://sso.example.invalid
+          VITE_PORTAL_OIDC_CLIENT_ID: qts-portal
+          VITE_PORTAL_OIDC_REDIRECT_URI: https://portal.example.invalid/auth/callback
+          VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: https://portal.example.invalid/
+          VITE_HRM_OIDC_CLIENT_ID: qts-hrm
+          VITE_ALLOW_INSECURE_LOCAL_OIDC: "false"
+          VITE_HRM_OIDC_REDIRECT_URI: https://hrm.example.invalid/auth/callback
+          VITE_HRM_OIDC_POST_LOGOUT_REDIRECT_URI: https://hrm.example.invalid/
+          QTS_SECURITY_ENABLED: "true"
+          QTS_IDENTITY_ISSUER: https://sso.example.invalid/
+          QTS_IDENTITY_JWK_SET_URI: https://sso.example.invalid/.well-known/jwks.json
+          QTS_IDENTITY_AUDIENCE: qts-api
+          LEAD_FLYWAY_ENABLED: "true"
+          EVENT_FLYWAY_ENABLED: "true"
+          ATTENDANCE_FLYWAY_ENABLED: "true"
+          IDENTITY_FLYWAY_ENABLED: "true"
+          QTS_IDENTITY_BOOTSTRAP_ENABLED: "true"
+          IDENTITY_PRIMARY_DOMAIN: qts.com
+          IDENTITY_REQUIRE_MFA: "true"
+          QTS_EVENT_POLL_ENABLED: "false"
+          QTS_EVENT_MAIL_ENABLED: "false"
+          QTS_IDENTITY_BRIDGE_ENABLED: "false"
+          ORY_HYDRA_ADMIN_URL: http://hydra:4445
+          ORY_KRATOS_INTERNAL_PUBLIC_URL: http://kratos:4433
+          ORY_KRATOS_ADMIN_URL: http://kratos:4434
+          ORY_KRATOS_SESSION_COOKIE: ory_kratos_session
+          ORY_HYDRA_CLIENT_ID_PORTAL: qts-portal
+          ORY_HYDRA_CLIENT_ID_HRM: qts-hrm
+          ORY_HYDRA_LOGIN_URL: https://sso.example.invalid/identity-api/oauth/ory/login
+          ORY_HYDRA_CONSENT_URL: https://sso.example.invalid/identity-api/oauth/ory/consent
+          ORY_HYDRA_LOGOUT_URL: https://sso.example.invalid/identity-api/oauth/ory/logout
+          ORY_API_AUDIENCE: qts-api
+          HRM_FLYWAY_ENABLED: "true"
+          HRM_MAX_PAGE_SIZE: "100"
+          MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+        run: |
+          docker compose \
+            --profile prod \
+            --profile spring \
+            --profile spring-events \
+            --profile spring-attendance \
+            --profile spring-identity-admin \
+            --profile spring-identity-bridge \
+            --profile spring-hrm \
+            -f docker-compose.yml \
+            -f docker-compose.prod.yml \
+            -f docker-compose.spring.yml \
+            -f docker-compose.spring.prod.yml \
+            config --quiet
+
+      - name: Validate optional cutover overlay
+        env:
+          POSTGRES_DB: qts
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: compose-validation-only
+          ORY_HYDRA_DB_PASSWORD: hydra-validation-only
+          ORY_KRATOS_DB_PASSWORD: kratos-validation-only
+          ORY_HYDRA_DSN: "postgres://hydra:hydra-validation-only@hydra-db:5432/hydra?sslmode=disable"
+          ORY_KRATOS_DSN: "postgres://kratos:kratos-validation-only@kratos-db:5432/kratos?sslmode=disable"
+          ORY_HYDRA_SYSTEM_SECRET: hydra-system-validation-only
+          ORY_KRATOS_COOKIE_SECRET: kratos-cookie-validation-only
+          ORY_KRATOS_CIPHER_SECRET: kratos-cipher-validation-only
+          IDENTITY_SIGNING_KEY_PASSPHRASE: identity-validation-only
+          CORS_ALLOWED_ORIGINS: "https://portal.example.invalid,https://hrm.example.invalid"
+          QTS_SECURITY_CORS_ALLOWED_ORIGINS: "https://sso.example.invalid,https://portal.example.invalid,https://hrm.example.invalid"
+          IDENTITY_ISSUER: https://api.example.invalid
+          IDENTITY_WEB_ORIGIN: https://sso.example.invalid
+          ORY_HYDRA_ISSUER_BROWSER_URL: https://sso.example.invalid/
+          ORY_KRATOS_BROWSER_URL: https://sso.example.invalid/kratos
+          VITE_IDENTITY_ISSUER: https://sso.example.invalid/
+          VITE_API_ISSUER: https://api.example.invalid
+          VITE_IDENTITY_WEB_ORIGIN: https://sso.example.invalid
+          VITE_PORTAL_OIDC_CLIENT_ID: qts-portal
+          VITE_PORTAL_OIDC_REDIRECT_URI: https://portal.example.invalid/auth/callback
+          VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: https://portal.example.invalid/
+          VITE_HRM_OIDC_CLIENT_ID: qts-hrm
+          VITE_ALLOW_INSECURE_LOCAL_OIDC: "false"
+          VITE_HRM_OIDC_REDIRECT_URI: https://hrm.example.invalid/auth/callback
+          VITE_HRM_OIDC_POST_LOGOUT_REDIRECT_URI: https://hrm.example.invalid/
+          QTS_SECURITY_ENABLED: "true"
+          QTS_IDENTITY_ISSUER: https://sso.example.invalid/
+          QTS_IDENTITY_JWK_SET_URI: https://sso.example.invalid/.well-known/jwks.json
+          QTS_IDENTITY_AUDIENCE: qts-api
+          LEAD_FLYWAY_ENABLED: "true"
+          EVENT_FLYWAY_ENABLED: "true"
+          ATTENDANCE_FLYWAY_ENABLED: "true"
+          IDENTITY_FLYWAY_ENABLED: "true"
+          QTS_IDENTITY_BOOTSTRAP_ENABLED: "true"
+          IDENTITY_PRIMARY_DOMAIN: qts.com
+          IDENTITY_REQUIRE_MFA: "true"
+          QTS_EVENT_POLL_ENABLED: "false"
+          QTS_EVENT_MAIL_ENABLED: "false"
+          QTS_IDENTITY_BRIDGE_ENABLED: "false"
+          ORY_HYDRA_ADMIN_URL: http://hydra:4445
+          ORY_KRATOS_INTERNAL_PUBLIC_URL: http://kratos:4433
+          ORY_KRATOS_ADMIN_URL: http://kratos:4434
+          ORY_KRATOS_SESSION_COOKIE: ory_kratos_session
+          ORY_HYDRA_CLIENT_ID_PORTAL: qts-portal
+          ORY_HYDRA_CLIENT_ID_HRM: qts-hrm
+          ORY_HYDRA_LOGIN_URL: https://sso.example.invalid/identity-api/oauth/ory/login
+          ORY_HYDRA_CONSENT_URL: https://sso.example.invalid/identity-api/oauth/ory/consent
+          ORY_HYDRA_LOGOUT_URL: https://sso.example.invalid/identity-api/oauth/ory/logout
+          ORY_API_AUDIENCE: qts-api
+          HRM_FLYWAY_ENABLED: "true"
+          HRM_MAX_PAGE_SIZE: "100"
+          MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+        run: |
+          docker compose \
+            --profile prod \
+            --profile spring \
+            --profile spring-events \
+            --profile spring-attendance \
+            --profile spring-identity-admin \
+            --profile spring-identity-bridge \
+            --profile spring-hrm \
+            -f docker-compose.yml \
+            -f docker-compose.prod.yml \
+            -f docker-compose.spring.yml \
+            -f docker-compose.spring.prod.yml \
+            -f docker-compose.spring.cutover.yml \
+            config --quiet

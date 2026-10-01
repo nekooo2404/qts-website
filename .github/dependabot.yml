@@ -1,0 +1,73 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/lead-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/event-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/attendance-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/identity-admin-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/identity-bridge-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: maven
+    directory: /backend/services/hrm-service
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /backend/services/lead-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/services/event-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/services/attendance-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/services/identity-admin-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/services/identity-bridge-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/services/hrm-service
+    schedule:
+      interval: weekly

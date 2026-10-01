@@ -1,0 +1,34 @@
+serve:
+  cookies:
+    same_site_mode: Lax
+  public:
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:5174
+        - http://localhost:5175
+      allowed_methods: [GET, POST, OPTIONS]
+      allowed_headers: [Authorization, Content-Type]
+      allow_credentials: false
+strategies:
+  access_token: jwt
+  jwt:
+    scope_claim: string
+ttl:
+  access_token: 10m
+  id_token: 10m
+  refresh_token: 24h
+  login_consent_request: 10m
+oauth2:
+  pkce:
+    enforced: true
+    enforced_for_public_clients: true
+  grant:
+    refresh_token:
+      rotation_grace_period: 0s
+      rotation_grace_reuse_count: 0
+  session:
+    encrypt_at_rest: true
+log:
+  level: info
+  leak_sensitive_values: false

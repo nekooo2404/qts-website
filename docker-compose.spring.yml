@@ -1,0 +1,231 @@
+services:
+  lead-service:
+    build:
+      context: .
+      dockerfile: backend/services/lead-service/Dockerfile
+    profiles: ["spring"]
+    environment:
+      PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      QTS_PLATFORM_TENANT_ID: ${QTS_PLATFORM_TENANT_ID:-00000000-0000-7000-8000-000000000001}
+      LEAD_NOTIFY_EMAIL: ${LEAD_NOTIFY_EMAIL:-}
+      LEAD_POW_PREFIX: ${LEAD_POW_PREFIX:-000}
+      LEAD_EXPORT_MAX_ROWS: ${LEAD_EXPORT_MAX_ROWS:-5000}
+      LEAD_FLYWAY_ENABLED: ${LEAD_FLYWAY_ENABLED:-true}
+      QTS_SECURITY_ENABLED: ${QTS_SECURITY_ENABLED:-true}
+      QTS_IDENTITY_ISSUER: ${QTS_IDENTITY_ISSUER:-http://localhost:4444/}
+      QTS_IDENTITY_JWK_SET_URI: ${QTS_IDENTITY_JWK_SET_URI:-http://hydra:4444/.well-known/jwks.json}
+      QTS_IDENTITY_AUDIENCE: ${QTS_IDENTITY_AUDIENCE:-qts-api}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  event-service:
+    build:
+      context: .
+      dockerfile: backend/services/event-service/Dockerfile
+    profiles: ["spring-events"]
+    environment:
+      PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      QTS_EVENT_STREAM_URL: redis://redis:6379/3
+      QTS_EVENT_POLL_ENABLED: ${QTS_EVENT_POLL_ENABLED:-false}
+      EVENT_FLYWAY_ENABLED: ${EVENT_FLYWAY_ENABLED:-true}
+      QTS_EVENT_BATCH_SIZE: ${QTS_EVENT_BATCH_SIZE:-100}
+      QTS_EVENT_CONSUMER_MAX_ATTEMPTS: ${QTS_EVENT_CONSUMER_MAX_ATTEMPTS:-8}
+      EVENT_STREAM_MAXLEN: ${EVENT_STREAM_MAXLEN:-100000}
+      EVENT_STREAM_NAME: ${EVENT_STREAM_NAME:-qts.events}
+      QTS_EVENT_CONSUMER_NAME: ${QTS_EVENT_CONSUMER_NAME:-spring-event-service}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS_ENABLE:-false}
+      QTS_EVENT_MAIL_ENABLED: ${QTS_EVENT_MAIL_ENABLED:-false}
+      MANAGEMENT_HEALTH_MAIL_ENABLED: ${MANAGEMENT_HEALTH_MAIL_ENABLED:-false}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8082/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  attendance-service:
+    build:
+      context: .
+      dockerfile: backend/services/attendance-service/Dockerfile
+    profiles: ["spring-attendance"]
+    environment:
+      PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      QTS_EVENT_STREAM_URL: redis://redis:6379/3
+      QTS_SECURITY_ENABLED: ${QTS_SECURITY_ENABLED:-true}
+      QTS_IDENTITY_ISSUER: ${QTS_IDENTITY_ISSUER:-http://localhost:4444/}
+      QTS_IDENTITY_JWK_SET_URI: ${QTS_IDENTITY_JWK_SET_URI:-http://hydra:4444/.well-known/jwks.json}
+      QTS_IDENTITY_AUDIENCE: ${QTS_IDENTITY_AUDIENCE:-qts-api}
+      ATTENDANCE_FLYWAY_ENABLED: ${ATTENDANCE_FLYWAY_ENABLED:-true}
+      ATTENDANCE_SYNC_MAX_EVENTS: ${ATTENDANCE_SYNC_MAX_EVENTS:-200}
+      ATTENDANCE_OFFLINE_WINDOW: ${ATTENDANCE_OFFLINE_WINDOW:-PT24H}
+      ATTENDANCE_ONLINE_SKEW: ${ATTENDANCE_ONLINE_SKEW:-PT5M}
+      ATTENDANCE_ASSERTION_MAX_TTL: ${ATTENDANCE_ASSERTION_MAX_TTL:-PT24H}
+      ATTENDANCE_ASSERTION_FUTURE_SKEW: ${ATTENDANCE_ASSERTION_FUTURE_SKEW:-PT60S}
+      ATTENDANCE_SYNC_DEVICE_RATE: ${ATTENDANCE_SYNC_DEVICE_RATE:-120/min}
+      ATTENDANCE_SYNC_TENANT_RATE: ${ATTENDANCE_SYNC_TENANT_RATE:-1200/min}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8083/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  identity-admin-service:
+    build:
+      context: .
+      dockerfile: backend/services/identity-admin-service/Dockerfile
+    profiles: ["spring-identity-admin"]
+    environment:
+      PORT: 8084
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      QTS_SECURITY_ENABLED: ${QTS_SECURITY_ENABLED:-true}
+      QTS_IDENTITY_ISSUER: ${QTS_IDENTITY_ISSUER:-http://localhost:4444/}
+      QTS_IDENTITY_JWK_SET_URI: ${QTS_IDENTITY_JWK_SET_URI:-http://hydra:4444/.well-known/jwks.json}
+      QTS_IDENTITY_AUDIENCE: ${QTS_IDENTITY_AUDIENCE:-qts-api}
+      QTS_SECURITY_CORS_ALLOWED_ORIGINS: ${QTS_SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:3018,http://localhost:5174,http://localhost:5175}
+      IDENTITY_FLYWAY_ENABLED: ${IDENTITY_FLYWAY_ENABLED:-true}
+      QTS_IDENTITY_BOOTSTRAP_ENABLED: ${QTS_IDENTITY_BOOTSTRAP_ENABLED:-true}
+      QTS_PLATFORM_TENANT_SLUG: ${QTS_PLATFORM_TENANT_SLUG:-qts-global}
+      QTS_PLATFORM_TENANT_NAME: ${QTS_PLATFORM_TENANT_NAME:-QTS Global}
+      IDENTITY_PRIMARY_DOMAIN: ${IDENTITY_PRIMARY_DOMAIN:-qts.com}
+      IDENTITY_REQUIRE_MFA: ${IDENTITY_REQUIRE_MFA:-false}
+      ORY_HYDRA_CLIENT_ID_PORTAL: ${ORY_HYDRA_CLIENT_ID_PORTAL:-qts-portal}
+      ORY_HYDRA_CLIENT_ID_HRM: ${ORY_HYDRA_CLIENT_ID_HRM:-qts-hrm}
+      VITE_PORTAL_OIDC_REDIRECT_URI: ${VITE_PORTAL_OIDC_REDIRECT_URI:-http://localhost:5174/auth/callback}
+      VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI:-http://localhost:5174/}
+      VITE_HRM_OIDC_REDIRECT_URI: ${VITE_HRM_OIDC_REDIRECT_URI:-http://localhost:5175/auth/callback}
+      VITE_HRM_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_HRM_OIDC_POST_LOGOUT_REDIRECT_URI:-http://localhost:5175/}
+      BOOTSTRAP_SUPERADMIN_EMAIL: ${BOOTSTRAP_SUPERADMIN_EMAIL:-superadmin@qts.com}
+      BOOTSTRAP_SUPERADMIN_NAME: ${BOOTSTRAP_SUPERADMIN_NAME:-Super Admin}
+      BOOTSTRAP_SUPERADMIN_TITLE: ${BOOTSTRAP_SUPERADMIN_TITLE:-Quản trị viên cấp cao}
+      BOOTSTRAP_SUPERADMIN_PASSWORD: ${BOOTSTRAP_SUPERADMIN_PASSWORD:-}
+      BOOTSTRAP_SUPERADMIN_PASSWORD_FILE: ${BOOTSTRAP_SUPERADMIN_PASSWORD_FILE:-}
+      QTS_ALLOW_WORKSPACE_BOOTSTRAP_SECRET: ${QTS_ALLOW_WORKSPACE_BOOTSTRAP_SECRET:-false}
+      ORY_KRATOS_INTERNAL_PUBLIC_URL: ${ORY_KRATOS_INTERNAL_PUBLIC_URL:-http://kratos:4433}
+      ORY_KRATOS_ADMIN_URL: ${ORY_KRATOS_ADMIN_URL:-http://kratos:4434}
+      ORY_KRATOS_SESSION_COOKIE: ${ORY_KRATOS_SESSION_COOKIE:-ory_kratos_session}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8084:8084"
+    depends_on:
+      db:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8084/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  identity-bridge-service:
+    build:
+      context: .
+      dockerfile: backend/services/identity-bridge-service/Dockerfile
+    profiles: ["spring-identity-bridge"]
+    environment:
+      PORT: 8085
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      QTS_IDENTITY_BRIDGE_ENABLED: ${QTS_IDENTITY_BRIDGE_ENABLED:-false}
+      IDENTITY_WEB_ORIGIN: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}
+      ORY_HYDRA_ISSUER_BROWSER_URL: ${ORY_HYDRA_ISSUER_BROWSER_URL:-http://localhost:4444/}
+      ORY_HYDRA_ADMIN_URL: ${ORY_HYDRA_ADMIN_URL:-http://hydra:4445}
+      ORY_KRATOS_BROWSER_URL: ${ORY_KRATOS_BROWSER_URL:-http://localhost:3001/kratos}
+      ORY_KRATOS_INTERNAL_PUBLIC_URL: ${ORY_KRATOS_INTERNAL_PUBLIC_URL:-http://kratos:4433}
+      ORY_KRATOS_ADMIN_URL: ${ORY_KRATOS_ADMIN_URL:-http://kratos:4434}
+      ORY_API_AUDIENCE: ${ORY_API_AUDIENCE:-qts-api}
+      ORY_KRATOS_SESSION_COOKIE: ${ORY_KRATOS_SESSION_COOKIE:-ory_kratos_session}
+      ORY_HYDRA_CLIENT_ID_PORTAL: ${ORY_HYDRA_CLIENT_ID_PORTAL:-qts-portal}
+      ORY_HYDRA_CLIENT_ID_HRM: ${ORY_HYDRA_CLIENT_ID_HRM:-qts-hrm}
+      PORTAL_OIDC_REDIRECT_URI: ${PORTAL_OIDC_REDIRECT_URI:-http://localhost:5174/auth/callback}
+      HRM_OIDC_REDIRECT_URI: ${HRM_OIDC_REDIRECT_URI:-http://localhost:5175/auth/callback}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8085:8085"
+    depends_on:
+      db:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      kratos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8085/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  hrm-service:
+    build:
+      context: .
+      dockerfile: backend/services/hrm-service/Dockerfile
+    profiles: ["spring-hrm"]
+    environment:
+      PORT: 8086
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-qts}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+      HRM_FLYWAY_ENABLED: ${HRM_FLYWAY_ENABLED:-true}
+      HRM_MAX_PAGE_SIZE: ${HRM_MAX_PAGE_SIZE:-100}
+      QTS_SECURITY_ENABLED: ${QTS_SECURITY_ENABLED:-true}
+      QTS_IDENTITY_ISSUER: ${QTS_IDENTITY_ISSUER:-http://localhost:4444/}
+      QTS_IDENTITY_JWK_SET_URI: ${QTS_IDENTITY_JWK_SET_URI:-http://hydra:4444/.well-known/jwks.json}
+      QTS_IDENTITY_AUDIENCE: ${QTS_IDENTITY_AUDIENCE:-qts-api}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:-health,info}
+    ports:
+      - "127.0.0.1:8086:8086"
+    depends_on:
+      db:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8086/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

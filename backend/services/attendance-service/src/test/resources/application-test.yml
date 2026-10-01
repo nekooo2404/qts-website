@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:qts_attendance;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: always
+  data:
+    redis:
+      url: redis://localhost:6379/15
+
+qts:
+  attendance:
+    security-enabled: false
+    max-events: 200
+    offline-window: PT24H
+    online-skew: PT5M

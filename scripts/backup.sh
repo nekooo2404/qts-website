@@ -27,19 +27,17 @@ COMPOSE=(
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR"
 
-BACKUP_FILE="$BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).dump"
-BACKUP_TMP="$BACKUP_FILE.tmp"
-trap 'rm -f "$BACKUP_TMP"' EXIT
-"${COMPOSE[@]}" exec -T db sh -ec \
-  'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' >"$BACKUP_TMP"
-[[ -s "$BACKUP_TMP" ]] || { echo "ERROR: PostgreSQL backup is empty" >&2; exit 1; }
-mv "$BACKUP_TMP" "$BACKUP_FILE"
-chmod 600 "$BACKUP_FILE"
-trap - EXIT
-
-mapfile -t OLD_BACKUPS < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'backup-*.dump' -printf '%T@ %p\n' | sort -rn | tail -n +"$((KEEP + 1))" | cut -d' ' -f2-)
-if ((${#OLD_BACKUPS[@]})); then
-  rm -f -- "${OLD_BACKUPS[@]}"
-fi
-
-echo "Backup written to $BACKUP_FILE"
+SNAPSHOT="$BACKUP_DIR/ory-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -m 700 "$SNAPSHOT"
+for service in db hydra-db kratos-db; do
+  "${COMPOSE[@]}" exec -T "$service" sh -ec \
+    'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' >"$SNAPSHOT/$service.dump.partial"
+  [[ -s "$SNAPSHOT/$service.dump.partial" ]] || { echo "ERROR: empty $service backup" >&2; exit 1; }
+  mv "$SNAPSHOT/$service.dump.partial" "$SNAPSHOT/$service.dump"
+  chmod 600 "$SNAPSHOT/$service.dump"
+done
+# Completion marker only follows all three successful dumps. Secrets are backed
+# up separately by the operator; a database-only snapshot cannot recover Ory keys.
+printf '%s\n' 'db hydra-db kratos-db' > "$SNAPSHOT/COMPLETE"
+chmod 600 "$SNAPSHOT/COMPLETE"
+echo "Complete Ory database snapshot: $SNAPSHOT"

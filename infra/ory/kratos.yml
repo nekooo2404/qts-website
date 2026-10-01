@@ -1,0 +1,59 @@
+version: v26.2.0
+serve:
+  public:
+    base_url: http://localhost:3001/kratos/
+  admin:
+    base_url: http://kratos:4434/
+session:
+  lifespan: 24h
+  cookie:
+    name: ory_kratos_session
+    same_site: Lax
+selfservice:
+  default_browser_return_url: http://localhost:3001/launcher
+  allowed_return_urls:
+    - http://localhost:3001/
+  methods:
+    password:
+      enabled: true
+    totp:
+      enabled: true
+      config:
+        issuer: QTS
+    lookup_secret:
+      enabled: true
+    link:
+      enabled: true
+    code:
+      enabled: true
+  flows:
+    error:
+      ui_url: http://localhost:3001/error
+    login:
+      ui_url: http://localhost:3001/login
+      lifespan: 10m
+    registration:
+      enabled: false
+      ui_url: http://localhost:3001/login
+    settings:
+      ui_url: http://localhost:3001/settings
+      privileged_session_max_age: 5m
+      required_aal: highest_available
+    recovery:
+      enabled: true
+      ui_url: http://localhost:3001/recovery
+      use: code
+    verification:
+      enabled: true
+      ui_url: http://localhost:3001/verification
+      use: code
+hashers:
+  algorithm: argon2
+identity:
+  default_schema_id: qts
+  schemas:
+    - id: qts
+      url: file:///etc/ory/identity.schema.json
+log:
+  level: info
+  leak_sensitive_values: false

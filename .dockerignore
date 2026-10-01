@@ -1,7 +1,10 @@
 # Reduce docker build context size
 **/node_modules
 **/.next
+**/.next-ory-review
 **/dist
+**/target
+.tools/
 **/.venv
 **/__pycache__
 **/.git
@@ -15,3 +18,13 @@
 .env.local
 backups/
 tmp_*.py
+
+.secrets/
+**/.env*
+test-results/
+
+# Local agent and visual-test artifacts
+.claude/
+.playwright-mcp/
+.superpowers/
+.impeccable/

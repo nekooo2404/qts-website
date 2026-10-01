@@ -1,0 +1,48 @@
+server:
+  port: ${PORT:8085}
+  shutdown: graceful
+
+spring:
+  application:
+    name: qts-identity-bridge-service
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_SHUTDOWN_TIMEOUT:30s}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/qts}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:1}
+      connection-timeout: 5000
+      validation-timeout: 3000
+  jackson:
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+
+qts:
+  identity:
+    web-origin: ${IDENTITY_WEB_ORIGIN:}
+    hydra-issuer-browser-url: ${ORY_HYDRA_ISSUER_BROWSER_URL:}
+    hydra-internal-public-url: ${ORY_HYDRA_INTERNAL_PUBLIC_URL:http://hydra:4444}
+    hydra-admin-url: ${ORY_HYDRA_ADMIN_URL:http://hydra:4445}
+    kratos-browser-url: ${ORY_KRATOS_BROWSER_URL:}
+    kratos-internal-public-url: ${ORY_KRATOS_INTERNAL_PUBLIC_URL:http://kratos:4433}
+    kratos-admin-url: ${ORY_KRATOS_ADMIN_URL:http://kratos:4434}
+    api-audience: ${ORY_API_AUDIENCE:qts-api}
+    kratos-session-cookie: ${ORY_KRATOS_SESSION_COOKIE:ory_kratos_session}
+    portal-client-id: ${ORY_HYDRA_CLIENT_ID_PORTAL:qts-portal}
+    hrm-client-id: ${ORY_HYDRA_CLIENT_ID_HRM:qts-hrm}
+    portal-redirect-uri: ${PORTAL_OIDC_REDIRECT_URI:}
+    hrm-redirect-uri: ${HRM_OIDC_REDIRECT_URI:}
+    enabled: ${QTS_IDENTITY_BRIDGE_ENABLED:false}

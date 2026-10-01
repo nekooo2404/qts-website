@@ -17,89 +17,29 @@ services:
       timeout: 3s
       retries: 5
 
-  keycloak-db-init:
+  hydra-db:
+    restart: unless-stopped
+  kratos-db:
+    restart: unless-stopped
+  hydra:
+    restart: unless-stopped
+    command: serve all -c /etc/ory/hydra.yml
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
-      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-
-  keycloak:
+      SERVE_TLS_ALLOW_TERMINATION_FROM: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: https://portal.qtsgroup.vn,https://hrm.qtsgroup.vn
+  kratos:
     restart: unless-stopped
+    command: serve --watch-courier -c /etc/ory/kratos.yml
     environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB required}
-      KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER required}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      KC_DB_SCHEMA: keycloak
-      KC_HOSTNAME: https://sso.qtsgroup.vn
-      KC_PROXY_HEADERS: xforwarded
-      KC_HTTP_ENABLED: "true"
-
-  identity:
-    profiles: ["dev"]
-
-  api:
-    restart: unless-stopped
-    environment:
-      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY required}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-api.example.com}
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB required}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS required}
-      IDENTITY_ISSUER: ${IDENTITY_ISSUER:?IDENTITY_ISSUER required}
-      IDENTITY_WEB_ORIGIN: ${IDENTITY_WEB_ORIGIN:?IDENTITY_WEB_ORIGIN required}
-      PORTAL_OIDC_REDIRECT_URI: ${VITE_PORTAL_OIDC_REDIRECT_URI:?VITE_PORTAL_OIDC_REDIRECT_URI required}
-      PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI:?VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI required}
-      IDENTITY_SIGNING_KEY_PASSPHRASE: ${IDENTITY_SIGNING_KEY_PASSPHRASE:? required}
-      IDENTITY_PROVIDER: ${IDENTITY_PROVIDER:-keycloak}
-      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:?KEYCLOAK_ISSUER required}
-      KEYCLOAK_INTERNAL_ISSUER: ${KEYCLOAK_INTERNAL_ISSUER:?KEYCLOAK_INTERNAL_ISSUER required}
-      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-account}
-      DEMO_PASSWORD: ${DEMO_PASSWORD:?DEMO_PASSWORD required}
-      REDIS_URL: redis://redis:6379/1
-    command: >-
-      sh -c 'python manage.py collectstatic --noinput &&
-             python manage.py migrate --check &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile -'
-    volumes: !reset []
-    ports:
-      - "127.0.0.1:8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - >-
-          import os, urllib.request;
-          host=os.environ["DJANGO_ALLOWED_HOSTS"].split(",")[0];
-          request=urllib.request.Request("http://127.0.0.1:8000/api/v1/health/", headers={"Host": host, "X-Forwarded-Proto": "https"});
-          response=urllib.request.urlopen(request, timeout=3);
-          assert response.status == 200
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 20s
-
-  web-prod:
-    restart: unless-stopped
-
-  portal-prod:
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
-  identity-prod:
-    restart: unless-stopped
+      SERVE_PUBLIC_BASE_URL: ${ORY_KRATOS_BROWSER_URL:?ORY_KRATOS_BROWSER_URL required}/
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: ${IDENTITY_WEB_ORIGIN}/launcher
+      SELFSERVICE_ALLOWED_RETURN_URLS: ${IDENTITY_WEB_ORIGIN}/
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: ${IDENTITY_WEB_ORIGIN}/login
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: ${IDENTITY_WEB_ORIGIN}/settings
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: ${IDENTITY_WEB_ORIGIN}/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: ${IDENTITY_WEB_ORIGIN}/verification
+      SELFSERVICE_FLOWS_ERROR_UI_URL: ${IDENTITY_WEB_ORIGIN}/error
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: ${IDENTITY_WEB_ORIGIN}/login
+      COURIER_SMTP_CONNECTION_URI: ${ORY_SMTP_CONNECTION_URI:-smtp://127.0.0.1:1}
+      SELFSERVICE_FLOWS_RECOVERY_ENABLED: ${ORY_EMAIL_FLOWS_ENABLED:-false}
+      SELFSERVICE_FLOWS_VERIFICATION_ENABLED: ${ORY_EMAIL_FLOWS_ENABLED:-false}

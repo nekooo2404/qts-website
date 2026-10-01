@@ -1,0 +1,70 @@
+server:
+  port: ${PORT:8084}
+  shutdown: graceful
+
+spring:
+  application:
+    name: qts-identity-admin-service
+  lifecycle:
+    timeout-per-shutdown-phase: ${SPRING_SHUTDOWN_TIMEOUT:30s}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/qts}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:1}
+      connection-timeout: 5000
+      validation-timeout: 3000
+  flyway:
+    enabled: ${IDENTITY_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    table: flyway_schema_history_identity_admin_service
+    baseline-on-migrate: ${IDENTITY_FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${IDENTITY_FLYWAY_BASELINE_VERSION:0}
+    validate-on-migrate: true
+  jackson:
+    default-property-inclusion: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+
+qts:
+  security:
+    enabled: ${QTS_SECURITY_ENABLED:true}
+    issuer: ${QTS_IDENTITY_ISSUER:}
+    jwk-set-uri: ${QTS_IDENTITY_JWK_SET_URI:}
+    audience: ${QTS_IDENTITY_AUDIENCE:qts-api}
+    cors:
+      allowed-origins: ${QTS_SECURITY_CORS_ALLOWED_ORIGINS:http://localhost:3018,http://localhost:5174,http://localhost:5175}
+  ory:
+    kratos-internal-public-url: ${ORY_KRATOS_INTERNAL_PUBLIC_URL:http://kratos:4433}
+    kratos-admin-url: ${ORY_KRATOS_ADMIN_URL:http://kratos:4434}
+    kratos-session-cookie: ${ORY_KRATOS_SESSION_COOKIE:ory_kratos_session}
+  identity-bootstrap:
+    enabled: ${QTS_IDENTITY_BOOTSTRAP_ENABLED:true}
+    tenant-slug: ${QTS_PLATFORM_TENANT_SLUG:qts-global}
+    tenant-name: ${QTS_PLATFORM_TENANT_NAME:QTS Global}
+    primary-domain: ${IDENTITY_PRIMARY_DOMAIN:qts.com}
+    require-mfa: ${IDENTITY_REQUIRE_MFA:false}
+    portal-client-id: ${ORY_HYDRA_CLIENT_ID_PORTAL:qts-portal}
+    portal-redirect-uri: ${VITE_PORTAL_OIDC_REDIRECT_URI:http://localhost:5174/auth/callback}
+    portal-post-logout-redirect-uri: ${VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI:http://localhost:5174/}
+    hrm-client-id: ${ORY_HYDRA_CLIENT_ID_HRM:qts-hrm}
+    hrm-redirect-uri: ${VITE_HRM_OIDC_REDIRECT_URI:http://localhost:5175/auth/callback}
+    hrm-post-logout-redirect-uri: ${VITE_HRM_OIDC_POST_LOGOUT_REDIRECT_URI:http://localhost:5175/}
+    superadmin-email: ${BOOTSTRAP_SUPERADMIN_EMAIL:superadmin@qts.com}
+    superadmin-name: ${BOOTSTRAP_SUPERADMIN_NAME:Super Admin}
+    superadmin-title: ${BOOTSTRAP_SUPERADMIN_TITLE:Quản trị viên cấp cao}
+    superadmin-employee-code: ${BOOTSTRAP_SUPERADMIN_EMPLOYEE_CODE:QTS-00001}
+    superadmin-password: ${BOOTSTRAP_SUPERADMIN_PASSWORD:}
+    superadmin-password-file: ${BOOTSTRAP_SUPERADMIN_PASSWORD_FILE:}
+    allow-workspace-secret-file: ${QTS_ALLOW_WORKSPACE_BOOTSTRAP_SECRET:false}

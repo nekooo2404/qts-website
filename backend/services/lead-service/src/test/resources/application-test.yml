@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:qts-leads;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+
+qts:
+  leads:
+    pow-prefix: "000"
+    notify-email: sales@qtsgroup.vn
+    export-max-rows: 5000
+  security:
+    enabled: false
+    issuer: ""
+    jwk-set-uri: ""
+    audience: qts-api

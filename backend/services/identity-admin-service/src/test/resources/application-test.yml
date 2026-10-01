@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:qts_identity_admin;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+
+qts:
+  security:
+    enabled: false
+    issuer: ""
+    jwk-set-uri: ""
+    audience: qts-api
+  identity-bootstrap:
+    enabled: false

@@ -1,0 +1,28 @@
+services:
+  db:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  hydra:
+    command: serve all --dev -c /etc/ory/hydra.yml
+    ports: !override ["127.0.0.1:4446:4444", "127.0.0.1:4447:4445"]
+    environment:
+      IDENTITY_WEB_ORIGIN: http://localhost:3018
+      URLS_SELF_ISSUER: http://localhost:4446/
+      URLS_LOGIN: http://localhost:3018/identity-api/oauth/ory/login
+      URLS_CONSENT: http://localhost:3018/identity-api/oauth/ory/consent
+      URLS_LOGOUT: http://localhost:3018/identity-api/oauth/ory/logout
+      URLS_POST_LOGOUT_REDIRECT: http://localhost:3018/sign-in
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:5184,http://localhost:5185
+  kratos:
+    command: serve --dev --watch-courier -c /etc/ory/kratos.yml
+    ports: !reset []
+    environment:
+      SERVE_PUBLIC_BASE_URL: http://localhost:3018/kratos/
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: http://localhost:3018/launcher
+      SELFSERVICE_ALLOWED_RETURN_URLS: http://localhost:3018/
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: http://localhost:3018/login
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: http://localhost:3018/settings
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: http://localhost:3018/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: http://localhost:3018/verification
+      SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:3018/error

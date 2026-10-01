@@ -2,7 +2,9 @@ node_modules/
 __pycache__/
 *.py[cod]
 .next/
+.next-ory-review/
 dist/
+**/target/
 staticfiles/
 *.dump
 .env
@@ -13,5 +15,25 @@ docker-compose.override.yml
 get-docker.sh
 .qts-pre-identity-migration.dump
 backups/
+tmp/
 tmp_*.py
 *.tsbuildinfo
+test-results/
+playwright-report/
+.secrets/
+.tools/
+
+# Local agent and visual-test artifacts
+.claude/settings.local.json
+.claude/skills/
+.claude/lighthouse-tmp/
+.claude/qts-lighthouse-mobile.json
+.claude/settings.json
+.playwright-mcp/
+.superpowers/
+.impeccable/review/
+/hrm-*.png
+/portal-*.png
+/profile-desktop.png
+/palette-desktop.png
+/task-2-*.png

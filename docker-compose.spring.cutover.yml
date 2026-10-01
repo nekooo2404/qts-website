@@ -1,0 +1,34 @@
+# Optional Spring cutover overlay.
+#
+# Use only after the Spring production gate and service-specific replay tests
+# pass. The default production overlay keeps Spring services internal. This
+# overlay publishes loopback-only ports so the host-level Caddy process can
+# route selected paths to Spring without exposing service containers publicly.
+
+services:
+  lead-service:
+    ports:
+      - "127.0.0.1:18081:8081"
+
+  event-service:
+    ports:
+      - "127.0.0.1:18082:8082"
+
+  attendance-service:
+    ports:
+      - "127.0.0.1:18083:8083"
+
+  identity-admin-service:
+    ports:
+      - "127.0.0.1:18084:8084"
+
+  identity-bridge-service:
+    environment:
+      QTS_IDENTITY_BRIDGE_ENABLED: ${QTS_IDENTITY_BRIDGE_ENABLED:-true}
+    ports:
+      - "127.0.0.1:18085:8085"
+
+  hrm-service:
+    ports:
+      - "127.0.0.1:18086:8086"
+
