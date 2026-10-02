@@ -8,6 +8,10 @@ dist/
 staticfiles/
 *.dump
 .env
+.env.*
+!.env.example
+.envrc
+.envrc.local
 .env.local
 .env.production
 .env.db.production
@@ -22,6 +26,24 @@ test-results/
 playwright-report/
 .secrets/
 .tools/
+.tmp/
+
+# Local credential material
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+.aws/
+.azure/
+.config/gcloud/
+.kube/
+.netrc
+.npmrc
+.pypirc
 
 # Local agent and visual-test artifacts
 .claude/settings.local.json

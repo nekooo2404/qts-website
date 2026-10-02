@@ -2,6 +2,7 @@ package vn.qts.identitybridge.config;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +13,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 class RequestIdFilter extends OncePerRequestFilter {
+    private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -27,10 +30,10 @@ class RequestIdFilter extends OncePerRequestFilter {
         if (incoming == null || incoming.isBlank()) {
             incoming = request.getHeader("X-Request-Id");
         }
-        if (incoming == null || incoming.isBlank() || incoming.length() > 128
-                || incoming.contains("\r") || incoming.contains("\n")) {
+        String normalized = incoming == null ? "" : incoming.trim();
+        if (!SAFE_REQUEST_ID.matcher(normalized).matches()) {
             return UUID.randomUUID().toString();
         }
-        return incoming.trim();
+        return normalized;
     }
 }

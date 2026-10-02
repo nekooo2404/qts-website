@@ -52,7 +52,7 @@ class LeadController {
         @RequestHeader(name = "X-PoW-Token", required = false) String powToken,
         HttpServletRequest httpRequest
     ) {
-        consultationRateLimiter.check(httpRequest);
+        consultationRateLimiter.check(httpRequest, request == null ? "" : request.email());
         LeadConsultationService.Result result = consultationService.submit(request, firstPresent(pow, powToken));
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
     }

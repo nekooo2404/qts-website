@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import vn.qts.identityadmin.application.IdentityReadService;
 import vn.qts.identityadmin.application.TenantClaims;
 import vn.qts.identityadmin.config.OrySessionProperties;
+import vn.qts.identityadmin.config.SecurityProperties;
 import vn.qts.identityadmin.domain.IdentityAdminException;
 import vn.qts.identityadmin.domain.IdentityContext;
 import vn.qts.identityadmin.infra.IdentityReadRepository;
@@ -36,7 +37,8 @@ class IdentityReadServiceTest {
                 repository,
                 new TenantClaims(),
                 mock(OrySessionGateway.class),
-                new OrySessionProperties("http://kratos:4433", "http://kratos:4434", "ory_kratos_session")
+                new OrySessionProperties("http://kratos:4433", "http://kratos:4434", "ory_kratos_session"),
+                new SecurityProperties(true, null, null, null, null, null)
         );
         tenantId = UUID.randomUUID();
         oryId = UUID.randomUUID();

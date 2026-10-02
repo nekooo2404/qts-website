@@ -8,7 +8,9 @@ public record LeadProperties(
     String notifyEmail,
     String eventSource,
     Integer exportMaxRows,
-    String consultationRate
+    String consultationRate,
+    String consultationEmailRate,
+    String trustedProxyCidrs
 ) {
     public String powPrefixOrEmpty() {
         return powPrefix == null ? "" : powPrefix.trim();
@@ -28,5 +30,13 @@ public record LeadProperties(
 
     public String consultationRateOrDefault() {
         return consultationRate == null || consultationRate.isBlank() ? "60/min" : consultationRate.trim();
+    }
+
+    public String consultationEmailRateOrDefault() {
+        return consultationEmailRate == null || consultationEmailRate.isBlank() ? "20/hour" : consultationEmailRate.trim();
+    }
+
+    public String trustedProxyCidrsOrDefault() {
+        return trustedProxyCidrs == null || trustedProxyCidrs.isBlank() ? "127.0.0.1/32,::1/128" : trustedProxyCidrs.trim();
     }
 }

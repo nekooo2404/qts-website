@@ -22,9 +22,20 @@ public class LeadConsultationRateLimiter {
     }
 
     public void check(HttpServletRequest request) {
-        String key = clientKey(request);
-        RateSpec spec = RateSpec.parse(properties.consultationRateOrDefault());
+        check(request, "");
+    }
+
+    public void check(HttpServletRequest request, String email) {
         long now = clock.millis();
+        checkBucket("ip:" + clientKey(request), RateSpec.parse(properties.consultationRateOrDefault()), now);
+        String normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail.isBlank()) {
+            checkBucket("email:" + normalizedEmail, RateSpec.parse(properties.consultationEmailRateOrDefault()), now);
+        }
+        pruneExpiredBuckets(now);
+    }
+
+    private void checkBucket(String key, RateSpec spec, long now) {
         Bucket bucket = buckets.computeIfAbsent(key, ignored -> new Bucket(now));
         long retryAfter;
         synchronized (bucket) {
@@ -33,22 +44,20 @@ public class LeadConsultationRateLimiter {
         if (retryAfter > 0) {
             throw new LeadRateLimitException(retryAfter);
         }
+    }
+
+    private void pruneExpiredBuckets(long now) {
         if (buckets.size() > 10_000) {
-            buckets.entrySet().removeIf(entry -> now - entry.getValue().windowStartedAt > Duration.ofMinutes(10).toMillis());
+            buckets.entrySet().removeIf(entry -> now - entry.getValue().windowStartedAt > Duration.ofHours(2).toMillis());
         }
     }
 
-    private static String clientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",", 2)[0].trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        String remote = request.getRemoteAddr();
-        return remote == null || remote.isBlank() ? "unknown" : remote;
+    private String clientKey(HttpServletRequest request) {
+        return TrustedClientAddress.resolve(request, properties.trustedProxyCidrsOrDefault());
+    }
+
+    private static String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
     }
 
     record RateSpec(int limit, Duration window) {

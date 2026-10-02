@@ -1,0 +1,22 @@
+{
+  "name": "@qts/app-chrome",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --pretty false"
+  },
+  "exports": {
+    ".": "./src/index.tsx",
+    "./styles.css": "./src/styles.css"
+  },
+  "types": "./src/index.tsx",
+  "peerDependencies": {
+    "@heroicons/react": "^2.2.0",
+    "react": "^19.1.1"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

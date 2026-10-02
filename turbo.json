@@ -4,7 +4,10 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".next/**", "!.next/cache/**"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "cache": true,
+      "persistent": true
     },
     "dev": {
       "dependsOn": ["^build"],

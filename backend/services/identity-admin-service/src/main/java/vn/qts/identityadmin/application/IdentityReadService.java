@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import vn.qts.identityadmin.config.SecurityProperties;
 import vn.qts.identityadmin.config.OrySessionProperties;
 import vn.qts.identityadmin.domain.IdentityAdminException;
 import vn.qts.identityadmin.domain.IdentityContext;
@@ -26,17 +27,20 @@ public class IdentityReadService {
     private final TenantClaims tenantClaims;
     private final OrySessionGateway orySessionGateway;
     private final OrySessionProperties orySessionProperties;
+    private final SecurityProperties securityProperties;
 
     public IdentityReadService(
             IdentityReadRepository repository,
             TenantClaims tenantClaims,
             OrySessionGateway orySessionGateway,
-            OrySessionProperties orySessionProperties
+            OrySessionProperties orySessionProperties,
+            SecurityProperties securityProperties
     ) {
         this.repository = repository;
         this.tenantClaims = tenantClaims;
         this.orySessionGateway = orySessionGateway;
         this.orySessionProperties = orySessionProperties;
+        this.securityProperties = securityProperties;
     }
 
     public Map<String, Object> userinfo(Jwt jwt) {
@@ -140,7 +144,7 @@ public class IdentityReadService {
         return repository.contextFromKratosSession(
                 kratos,
                 header(request, "User-Agent"),
-                clientAddress(request)
+                TrustedClientAddress.resolve(request, securityProperties.trustedProxyCidrsOrDefault())
         );
     }
 
@@ -272,17 +276,6 @@ public class IdentityReadService {
 
     private static String header(HttpServletRequest request, String name) {
         return request == null ? "" : safe(request.getHeader(name));
-    }
-
-    private static String clientAddress(HttpServletRequest request) {
-        if (request == null) {
-            return "";
-        }
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return safe(request.getRemoteAddr());
     }
 
     private static String safe(String value) {

@@ -14,16 +14,38 @@
 *.log
 *.dump
 .env
+.env.*
+.envrc
+.envrc.local
 .env.production
 .env.local
 backups/
 tmp_*.py
+.tmp/
 
 .secrets/
 **/.env*
 test-results/
 
+# Keep local credential material and developer auth out of image layers.
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+.aws/
+.azure/
+.config/gcloud/
+.kube/
+.netrc
+.npmrc
+.pypirc
+
 # Local agent and visual-test artifacts
+.codex/
 .claude/
 .playwright-mcp/
 .superpowers/

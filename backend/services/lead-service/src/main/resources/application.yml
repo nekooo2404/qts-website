@@ -46,6 +46,8 @@ qts:
     event-source: qts.leads
     export-max-rows: ${LEAD_EXPORT_MAX_ROWS:5000}
     consultation-rate: ${LEAD_CONSULTATION_RATE:60/min}
+    consultation-email-rate: ${LEAD_CONSULTATION_EMAIL_RATE:20/hour}
+    trusted-proxy-cidrs: ${QTS_TRUSTED_PROXY_CIDRS:127.0.0.1/32,::1/128}
   security:
     enabled: ${QTS_SECURITY_ENABLED:true}
     issuer: ${QTS_IDENTITY_ISSUER:}

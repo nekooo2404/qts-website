@@ -3,9 +3,32 @@
   "private": true,
   "version": "0.1.0",
   "packageManager": "npm@10.9.0",
-  "workspaces": [],
+  "workspaces": [
+    "frontend-client",
+    "frontend-portal/portal",
+    "frontend-portal/identity",
+    "frontend-hrm",
+    "packages/app-chrome",
+    "packages/oidc-client"
+  ],
   "scripts": {
-    "test:ory": "playwright test --config=playwright.ory.config.ts"
+    "dev:web": "npm run dev --workspace=@qts/web",
+    "dev:portal": "npm run dev --workspace=@qts/portal",
+    "dev:identity": "npm run dev --workspace=@qts/identity",
+    "dev:hrm": "npm run dev --workspace=@qts/hrm",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build --workspace=@qts/web",
+    "build:identity": "npm run build --workspace=@qts/identity",
+    "build:portal": "npm run build --workspace=@qts/portal",
+    "build:hrm": "npm run build --workspace=@qts/hrm",
+    "build:parallel": "npm-run-all --parallel build:web build:identity build:portal build:hrm",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:ory": "playwright test --config=playwright.ory.config.ts",
+    "test:landing": "playwright test --config=playwright.landing.config.ts",
+    "test:portal": "playwright test --config=playwright.portal.config.ts",
+    "test:hrm": "playwright test --config=playwright.hrm.config.ts",
+    "test:production": "playwright test --config=playwright.production.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

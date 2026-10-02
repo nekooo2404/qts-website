@@ -118,6 +118,18 @@ class IdentityAdminUsersApiTest {
     }
 
     @Test
+    void unsafeRequestIdIsNotReflected() throws Exception {
+        String unsafeRequestId = "identity admin users test";
+
+        mockMvc.perform(get("/oauth/csrf")
+                        .header("X-Request-ID", unsafeRequestId))
+                .andExpect(status().isOk())
+                .andExpect(result -> assertThat(result.getResponse().getHeader("X-Request-ID"))
+                        .isNotEqualTo(unsafeRequestId)
+                        .matches("[0-9a-fA-F-]{36}"));
+    }
+
+    @Test
     void browserCookieMutationsRequireCsrfToken() throws Exception {
         when(orySessionGateway.whoami("csrf-session"))
                 .thenReturn(kratosSession(UUID.randomUUID(), alexOryId));

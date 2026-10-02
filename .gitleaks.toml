@@ -1,0 +1,13 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore generated/vendor artifacts; do not ignore env or secret files."
+paths = [
+  '''(^|/)\.tmp/''',
+  '''(^|/)\.tools/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+  '''(^|/)dist/''',
+  '''(^|/)target/'''
+]
