@@ -1,0 +1,961 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QTS Public API Contract",
+    "version": "2026-10-05",
+    "summary": "Published contract for the current Spring services exposed by QTS.",
+    "description": "This contract mirrors the public HTTP surface implemented by lead-service, identity-admin-service, identity-bridge-service, hrm-service and attendance-service. OAuth2/OIDC protocol endpoints owned directly by Ory Hydra/Kratos are intentionally referenced by issuer discovery instead of duplicated here."
+  },
+  "servers": [
+    {
+      "url": "https://api.qtsgroup.vn",
+      "description": "Production API gateway"
+    },
+    {
+      "url": "https://sso.qtsgroup.vn",
+      "description": "Identity browser and Ory bridge origin"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Leads",
+      "description": "Consultation intake and staff lead operations"
+    },
+    {
+      "name": "Identity",
+      "description": "Session, launcher, entitlements and security console reads"
+    },
+    {
+      "name": "Identity Admin",
+      "description": "Admin catalogue and membership access management"
+    },
+    {
+      "name": "Identity Bridge",
+      "description": "Hydra login, consent and logout challenge bridge"
+    },
+    {
+      "name": "HRM",
+      "description": "Employee directory and organization reference reads"
+    },
+    {
+      "name": "Attendance",
+      "description": "Attendance device enrollment and sync"
+    }
+  ],
+  "paths": {
+    "/api/v1/leads/consultation/": {
+      "post": {
+        "tags": ["Leads"],
+        "summary": "Submit a consultation request from the marketing website",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-PoW",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-PoW-Token",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ConsultationLeadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/LeadCreated" },
+          "200": { "$ref": "#/components/responses/LeadCreated" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/leads": {
+      "get": {
+        "tags": ["Leads"],
+        "summary": "List consultation leads for authorized staff",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "page_size", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lead page",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LeadPage" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/leads/{id}": {
+      "patch": {
+        "tags": ["Leads"],
+        "summary": "Update a lead status or staff-owned lead metadata",
+        "parameters": [{ "$ref": "#/components/parameters/NumericId" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated lead",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LeadRecord" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/leads/{id}/activities": {
+      "get": {
+        "tags": ["Leads"],
+        "summary": "List lead activities",
+        "parameters": [{ "$ref": "#/components/parameters/NumericId" }],
+        "responses": {
+          "200": {
+            "description": "Lead activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "object", "additionalProperties": true }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/leads/export": {
+      "get": {
+        "tags": ["Leads"],
+        "summary": "Export leads as CSV",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV export",
+            "content": {
+              "text/csv": {
+                "schema": { "type": "string", "contentMediaType": "text/csv" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/oauth/userinfo": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return the current OAuth userinfo payload",
+        "responses": {
+          "200": {
+            "description": "Userinfo payload",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/oauth/csrf": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return the browser CSRF token used by identity state-changing calls",
+        "responses": {
+          "200": {
+            "description": "CSRF token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["csrfToken"],
+                  "properties": {
+                    "csrfToken": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/enrollment/complete": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Complete first-login enrollment",
+        "parameters": [{ "$ref": "#/components/parameters/CsrfHeader" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enrollment result",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/session": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return the current QTS browser session",
+        "responses": {
+          "200": {
+            "description": "Session payload",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/launcher": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return applications assigned to the current user",
+        "responses": {
+          "200": {
+            "description": "Launcher applications and user context",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/portal-entitlements": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return Portal entitlements for the current user",
+        "responses": {
+          "200": {
+            "description": "Portal entitlement payload",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "List active sessions visible to the current user/admin",
+        "responses": {
+          "200": {
+            "description": "Session list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/sessions/{sessionId}": {
+      "delete": {
+        "tags": ["Identity"],
+        "summary": "Revoke a browser session",
+        "parameters": [
+          { "$ref": "#/components/parameters/SessionId" },
+          { "$ref": "#/components/parameters/CsrfHeader" }
+        ],
+        "responses": {
+          "204": { "description": "Session revoked" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/console/security-overview": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return identity security overview data for the console",
+        "responses": {
+          "200": {
+            "description": "Security overview",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/console/audit-events": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Return identity audit events for the console",
+        "responses": {
+          "200": {
+            "description": "Audit events",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdentityPayload" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": ["Identity Admin"],
+        "summary": "List tenant users and memberships",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "role", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "page_size", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "User page",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/admin/users/{membershipId}/access": {
+      "patch": {
+        "tags": ["Identity Admin"],
+        "summary": "Update membership access",
+        "parameters": [{ "$ref": "#/components/parameters/MembershipId" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated admin user",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/admin/roles": {
+      "get": {
+        "tags": ["Identity Admin"],
+        "summary": "List identity roles",
+        "responses": {
+          "200": {
+            "description": "Role catalogue",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/admin/applications": {
+      "get": {
+        "tags": ["Identity Admin"],
+        "summary": "List identity applications",
+        "responses": {
+          "200": {
+            "description": "Application catalogue",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/oauth/ory/login": {
+      "get": {
+        "tags": ["Identity Bridge"],
+        "summary": "Accept a Hydra login challenge using the current Kratos browser session",
+        "security": [],
+        "parameters": [
+          { "name": "login_challenge", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "302": { "$ref": "#/components/responses/Redirect" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/oauth/ory/consent": {
+      "get": {
+        "tags": ["Identity Bridge"],
+        "summary": "Accept a Hydra consent challenge when the user is entitled to the requested client",
+        "security": [],
+        "parameters": [
+          { "name": "consent_challenge", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "302": { "$ref": "#/components/responses/Redirect" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/oauth/ory/logout": {
+      "get": {
+        "tags": ["Identity Bridge"],
+        "summary": "Start Hydra logout challenge handling",
+        "security": [],
+        "parameters": [
+          { "name": "logout_challenge", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "302": { "$ref": "#/components/responses/Redirect" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/oauth/ory/logout/accept": {
+      "post": {
+        "tags": ["Identity Bridge"],
+        "summary": "Accept Hydra logout challenge",
+        "security": [],
+        "parameters": [
+          { "name": "logout_challenge", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON response when Accept includes application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["redirect_to"],
+                  "properties": {
+                    "redirect_to": { "type": "string", "format": "uri" }
+                  }
+                }
+              }
+            }
+          },
+          "302": { "$ref": "#/components/responses/Redirect" },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/employees": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "List employees visible to the current HRM principal",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "departmentId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "branchId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/employees/{employeeId}": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "Read employee profile",
+        "parameters": [{ "$ref": "#/components/parameters/EmployeeId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/employees/{employeeId}/personal-details": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "Read protected employee personal details",
+        "parameters": [{ "$ref": "#/components/parameters/EmployeeId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/employees/{employeeId}/employment-records": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "Read employee employment records",
+        "parameters": [{ "$ref": "#/components/parameters/EmployeeId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/employees/{employeeId}/dependents": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "Read employee dependents",
+        "parameters": [{ "$ref": "#/components/parameters/EmployeeId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/employees/{employeeId}/emergency-contacts": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "Read employee emergency contacts",
+        "parameters": [{ "$ref": "#/components/parameters/EmployeeId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/organizations/departments": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "List departments",
+        "parameters": [
+          { "name": "companyId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "branchId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "parentId", "in": "query", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/organizations/companies": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "List companies",
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/organizations/branches": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "List branches",
+        "parameters": [
+          { "name": "companyId", "in": "query", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/organizations/positions": {
+      "get": {
+        "tags": ["HRM"],
+        "summary": "List positions",
+        "parameters": [
+          { "name": "departmentId", "in": "query", "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/GenericJson" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/attendance/devices": {
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Enroll an attendance device",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Envelope" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/attendance/devices/{id}": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Read an attendance device",
+        "parameters": [{ "$ref": "#/components/parameters/UuidId" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Envelope" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/attendance/devices/{id}/revoke": {
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Revoke an attendance device",
+        "parameters": [{ "$ref": "#/components/parameters/UuidId" }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Envelope" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/attendance/device-events:sync": {
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Sync attendance events from an enrolled device",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Device-Id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Envelope" },
+          "202": { "$ref": "#/components/responses/Envelope" },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Access token issued by QTS Identity / Ory Hydra."
+      }
+    },
+    "parameters": {
+      "NumericId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer", "minimum": 1 }
+      },
+      "UuidId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "EmployeeId": {
+        "name": "employeeId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "MembershipId": {
+        "name": "membershipId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "SessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "CsrfHeader": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "GenericJson": {
+        "description": "JSON response",
+        "content": {
+          "application/json": {
+            "schema": { "type": "object", "additionalProperties": true }
+          }
+        }
+      },
+      "Envelope": {
+        "description": "QTS API envelope",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ApiEnvelope" }
+          }
+        }
+      },
+      "LeadCreated": {
+        "description": "Lead submission accepted",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "Redirect": {
+        "description": "Browser redirect",
+        "headers": {
+          "Location": {
+            "schema": { "type": "string", "format": "uri" }
+          },
+          "Cache-Control": {
+            "schema": { "type": "string", "example": "no-store" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid authentication",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Problem" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated but not authorized",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Problem" }
+          }
+        }
+      },
+      "Problem": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Problem" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ConsultationLeadRequest": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "email": { "type": "string", "format": "email", "maxLength": 254 },
+          "phone": { "type": "string", "maxLength": 40 },
+          "company": { "type": "string", "maxLength": 180 },
+          "jobTitle": { "type": "string", "maxLength": 120 },
+          "message": { "type": "string", "maxLength": 4000 },
+          "source": { "type": "string", "maxLength": 80 },
+          "utm": {
+            "type": "object",
+            "additionalProperties": { "type": ["string", "null"] }
+          }
+        },
+        "additionalProperties": true
+      },
+      "LeadRecord": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "LeadPage": {
+        "type": "object",
+        "required": ["count", "results"],
+        "properties": {
+          "count": { "type": "integer", "minimum": 0 },
+          "next": { "type": ["string", "null"], "format": "uri" },
+          "previous": { "type": ["string", "null"], "format": "uri" },
+          "results": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LeadRecord" }
+          }
+        },
+        "additionalProperties": true
+      },
+      "IdentityPayload": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "ApiEnvelope": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {},
+          "message": { "type": ["string", "null"] },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "errorCode": { "type": "string" },
+          "requestId": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": true
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "error": { "type": "string" },
+          "errorCode": { "type": "string" },
+          "message": { "type": "string" },
+          "requestId": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "details": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

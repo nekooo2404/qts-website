@@ -85,6 +85,21 @@ by `docker-compose.spring.cutover.yml`:
 Unknown `api.qtsgroup.vn` API paths return `404` after release; they must not
 fall through to non-Spring backend routes.
 
+## Low-RAM VPS deployment rule
+
+The production VPS has limited memory. Do not build Node frontend images on the
+server during normal releases. Build artifacts or images on a workstation/CI
+runner, transfer the verified release to `/opt/qtsss`, then start only the
+runtime containers on the VPS.
+
+For emergency source-only updates, use a low-impact rollout:
+
+1. upload/extract the release under `/opt/qtsss/releases/<timestamp>`;
+2. switch `/opt/qtsss/current-release` after the files are present;
+3. restart only the service whose runtime assets changed;
+4. avoid parallel Docker builds and avoid Compose profiles unrelated to the
+   changed service.
+
 ## Verification
 
 Before release:
