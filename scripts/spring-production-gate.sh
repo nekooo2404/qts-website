@@ -146,6 +146,7 @@ export ORY_HYDRA_ISSUER_BROWSER_URL="${ORY_HYDRA_ISSUER_BROWSER_URL:-https://sso
 export ORY_KRATOS_BROWSER_URL="${ORY_KRATOS_BROWSER_URL:-https://sso.example.invalid/kratos}"
 export VITE_IDENTITY_ISSUER="${VITE_IDENTITY_ISSUER:-https://sso.example.invalid/}"
 export VITE_API_ISSUER="${VITE_API_ISSUER:-https://api.example.invalid}"
+export VITE_HRM_API_ISSUER="${VITE_HRM_API_ISSUER:-https://api.example.invalid}"
 export VITE_IDENTITY_WEB_ORIGIN="${VITE_IDENTITY_WEB_ORIGIN:-https://sso.example.invalid}"
 export VITE_PORTAL_OIDC_CLIENT_ID="${VITE_PORTAL_OIDC_CLIENT_ID:-qts-portal}"
 export VITE_PORTAL_OIDC_REDIRECT_URI="${VITE_PORTAL_OIDC_REDIRECT_URI:-https://portal.example.invalid/auth/callback}"

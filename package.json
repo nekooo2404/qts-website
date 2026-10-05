@@ -23,6 +23,7 @@
     "build:hrm": "npm run build --workspace=@qts/hrm",
     "build:parallel": "npm-run-all --parallel build:web build:identity build:portal build:hrm",
     "lint": "npm run lint --workspaces --if-present",
+    "audit:security": "node scripts/audit-security.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test:ory": "playwright test --config=playwright.ory.config.ts",
     "test:landing": "playwright test --config=playwright.landing.config.ts",

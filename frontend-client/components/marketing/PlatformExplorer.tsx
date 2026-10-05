@@ -1,23 +1,41 @@
 ﻿"use client";
 
-import { useState } from "react";
-import type { ComponentType, SVGProps } from "react";
+import { useRef, useState } from "react";
+import type { ComponentType, KeyboardEvent, SVGProps } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { BoltIcon, ChartBarIcon, CloudIcon, CubeTransparentIcon, SparklesIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type Module = { name: string; caption: string; impact: string; value: string; icon: Icon; description: string };
 
-function ModuleButton({ module, active, onClick }: { module: Module; active: boolean; onClick: () => void }) {
+function ModuleButton({
+  module,
+  index,
+  active,
+  buttonRef,
+  onClick,
+  onKeyDown,
+}: {
+  module: Module;
+  index: number;
+  active: boolean;
+  buttonRef: (node: HTMLButtonElement | null) => void;
+  onClick: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>, index: number) => void;
+}) {
   const ModuleIcon = module.icon;
   return (
     <button
+      ref={buttonRef}
       type="button"
+      role="radio"
       className={`module-button ${active ? "active" : ""}`}
       onClick={onClick}
-      aria-pressed={active}
+      onKeyDown={(event) => onKeyDown(event, index)}
+      aria-checked={active}
       aria-controls="platform-preview"
       aria-label={`${module.name}: ${module.caption}`}
+      tabIndex={active ? 0 : -1}
     >
       <i className="module-icon"><ModuleIcon /></i><span><strong>{module.name}</strong><small>{module.caption}</small></span>
     </button>
@@ -35,19 +53,46 @@ const modules: Module[] = [
 
 export default function PlatformExplorer() {
   const [selected, setSelected] = useState(0);
+  const moduleRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const reducedMotion = useReducedMotion();
   const selectedModule = modules[selected];
   const ModuleIcon = selectedModule.icon;
+  const focusModule = (nextIndex: number) => {
+    const safeIndex = (nextIndex + modules.length) % modules.length;
+    setSelected(safeIndex);
+    window.requestAnimationFrame(() => moduleRefs.current[safeIndex]?.focus());
+  };
+  const onModuleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      focusModule(index + 1);
+    }
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      focusModule(index - 1);
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusModule(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusModule(modules.length - 1);
+    }
+  };
   return <div className="platform-wrap" aria-label="Bản minh họa nền tảng QTS" aria-describedby="platform-explorer-status">
     <p id="platform-explorer-status" className="sr-only" aria-live="polite">Đang xem: {selectedModule.name}, {selectedModule.caption}.</p>
     <div className="platform-window-bar">
       <b>Minh họa nền tảng QTS</b>
       <small>{selectedModule.name}</small>
     </div>
-    <div className="platform-grid">
-      <div className="platform-modules">{modules.slice(0, 3).map((module, index) => <ModuleButton key={module.name} module={module} active={selected === index} onClick={() => setSelected(index)} />)}</div>
+    <div className="platform-grid" role="radiogroup" aria-label="Chọn phân hệ minh họa của nền tảng QTS">
+      <div className="platform-modules">{modules.slice(0, 3).map((module, index) => <ModuleButton key={module.name} module={module} index={index} buttonRef={(node) => { moduleRefs.current[index] = node; }} active={selected === index} onClick={() => setSelected(index)} onKeyDown={onModuleKeyDown} />)}</div>
       <div className="platform-core"><i className="orbit one" /><i className="orbit two" /><div className="core"><i className="brand-mark" /><strong>Nền tảng doanh nghiệp QTS</strong><span>Kết nối trong thiết kế. Thông minh theo mặc định.</span></div></div>
-      <div className="platform-modules">{modules.slice(3).map((module, index) => <ModuleButton key={module.name} module={module} active={selected === index + 3} onClick={() => setSelected(index + 3)} />)}</div>
+      <div className="platform-modules">{modules.slice(3).map((module, index) => {
+        const actualIndex = index + 3;
+        return <ModuleButton key={module.name} module={module} index={actualIndex} buttonRef={(node) => { moduleRefs.current[actualIndex] = node; }} active={selected === actualIndex} onClick={() => setSelected(actualIndex)} onKeyDown={onModuleKeyDown} />;
+      })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.article id="platform-preview" className="platform-preview" key={selectedModule.name} aria-live="polite" aria-atomic="true" initial={reducedMotion ? false : { opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 }} transition={{ duration: reducedMotion ? 0 : .24 }}>

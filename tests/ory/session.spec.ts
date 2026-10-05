@@ -55,16 +55,28 @@ async function openPasswordLogin(page: Page) {
     { timeout: 30_000 },
   );
   const identifier = page.locator('input[name="identifier"]');
-  await expect(page.getByRole("heading", { name: "Đăng nhập QTS" })).toBeVisible();
-  if (await identifier.isVisible()) return;
-  const localHint = page.getByRole("button", { name: /Nhập email và mật khẩu/ });
-  if (await localHint.isVisible()) await localHint.click();
-  else await page.getByRole("tab", { name: "Tài khoản nội bộ" }).click();
+  await expect(page.getByRole("heading", { name: /Đăng nhập QTS|Log in to your QTS account/ })).toBeVisible();
+  if (await expect(identifier).toBeVisible({ timeout: 15_000 }).then(() => true).catch(() => false)) return;
+  const accountButton = page.getByRole("button", { name: /Tài khoản thông thường|Nhập email và mật khẩu|Tài khoản nội bộ/ }).first();
+  if (await accountButton.count()) {
+    await accountButton.click();
+  } else {
+    await page.getByRole("tab", { name: /Tài khoản nội bộ/ }).click();
+  }
   await expect(identifier).toBeVisible({ timeout: 15_000 });
 }
 
+async function openCurrentPasswordLogin(page: Page) {
+  await page.waitForURL(
+    url => url.pathname.replace(/\/$/, "").endsWith("/login") && url.searchParams.has("flow"),
+    { timeout: 30_000 },
+  );
+  await expect(page.getByRole("heading", { name: /Log in to your QTS account/ })).toBeVisible();
+  await expect(page.locator('input[name="identifier"]')).toBeVisible({ timeout: 15_000 });
+}
+
 async function submitPasswordLogin(page: Page, email: string, password: string) {
-  await openPasswordLogin(page);
+  await openCurrentPasswordLogin(page);
   await page.locator('input[name="identifier"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.locator('button[name="method"][value="password"]').click();
@@ -78,30 +90,40 @@ function displayNameFor(email: string) {
 
 async function startPortalFromLauncher(page: Page) {
   await page.waitForURL(
-    url => url.origin === identity && url.pathname.replace(/\/$/, "").endsWith("/launcher"),
+    url => (
+      url.origin === identity && url.pathname.replace(/\/$/, "").endsWith("/launcher")
+    ) || url.origin === portal,
     { timeout: 25_000 },
   );
-  await page.locator(`a.launcher-card[href^="${portal}"]`).click();
-  await page.waitForURL(
-    url => url.origin === portal && url.pathname.includes("/auth/callback"),
-    { timeout: 30_000 },
-  );
-  await page.waitForURL(
-    url => url.origin === portal && !url.pathname.includes("/auth/callback"),
-    { timeout: 20_000 },
-  );
-  const dump = await page.evaluate(() => ({
-    url: location.href,
-    heading: document.querySelector("h1")?.textContent?.trim() ?? "",
-    alert: document.querySelector("[role='alert'], .login-error")?.textContent?.trim() ?? "",
-    text: (document.body.innerText || "").replace(/\s+/g, " ").slice(0, 400),
-    session: sessionStorage.getItem("ory-qts-portal:session") ? "present" : "missing",
-  }));
-  console.log("PORTAL_DUMP", JSON.stringify(dump));
+  if (new URL(page.url()).origin === identity) {
+    await page.locator(`a.launcher-card[href^="${portal}"]`).click();
+  }
+  if (new URL(page.url()).origin !== portal || new URL(page.url()).pathname.includes("/auth/callback")) {
+    await page.waitForURL(
+      url => url.origin === portal && url.pathname.includes("/auth/callback"),
+      { timeout: 30_000 },
+    );
+  }
+  if (new URL(page.url()).pathname.includes("/auth/callback")) {
+    await page.waitForURL(
+      url => url.origin === portal && !url.pathname.includes("/auth/callback"),
+      { timeout: 20_000 },
+    );
+  }
 }
 
 async function expectPortalSession(page: Page, name: string) {
-  await expect(page.locator(".portal-shell, .application-card-primary").first()).toBeVisible({ timeout: 25_000 });
+  await expect(page.locator(".portal-shell, .application-card-primary").first()).toBeVisible({ timeout: 25_000 }).catch(async (error) => {
+    const dump = await page.evaluate(() => ({
+      url: location.href,
+      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+      alert: document.querySelector("[role='alert'], .login-error")?.textContent?.trim() ?? "",
+      text: (document.body.innerText || "").replace(/\s+/g, " ").slice(0, 700),
+      session: sessionStorage.getItem("ory-qts-portal:session") ? "present" : "missing",
+    }));
+    console.log("PORTAL_EXPECT_DUMP", JSON.stringify(dump));
+    throw error;
+  });
   await expect(page.getByText(name, { exact: false }).first()).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("ory-qts-portal:session")!).refresh_token)).toBeUndefined();
 }
@@ -168,8 +190,11 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
   await expectPortalSession(page, displayName);
   await page.evaluate(() => { const key = "ory-qts-portal:session"; const stored = JSON.parse(sessionStorage.getItem(key)!); stored.expires_at = 1; sessionStorage.setItem(key, JSON.stringify(stored)); });
   await page.reload();
-  await page.getByRole("button", { name: /Tiếp tục/ }).click();
+  const continueButton = page.getByRole("button", { name: /Tiếp tục|Thử lại xác minh danh tính/ });
+  await expect(continueButton.or(page.locator(".portal-shell, .application-card-primary")).first()).toBeVisible({ timeout: 25_000 });
+  await expect(continueButton).toHaveCount(0);
   await startPortalFromLauncher(page);
+  await expect(page.locator(".login-card")).toHaveCount(0);
   await expect(page.locator('input[name="password"]')).toHaveCount(0);
   await expectPortalSession(page, displayName);
 
@@ -187,7 +212,17 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
 
   const hrmPage = await context.newPage();
   await hrmPage.goto(hrm + "/?sso=1");
-  await expect(hrmPage.locator(".hrm-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".hrm-shell")).toBeVisible({ timeout: 25_000 }).catch(async (error) => {
+    const dump = await hrmPage.evaluate(() => ({
+      url: location.href,
+      heading: document.querySelector("h1")?.textContent?.trim() ?? "",
+      alert: document.querySelector("[role='alert'], .auth-error")?.textContent?.trim() ?? "",
+      text: (document.body.innerText || "").replace(/\s+/g, " ").slice(0, 600),
+      session: sessionStorage.getItem("ory-qts-hrm:session") ? "present" : "missing",
+    }));
+    console.log("HRM_DUMP", JSON.stringify(dump));
+    throw error;
+  });
   await expect(hrmPage.getByText(displayName, { exact: false }).first()).toBeVisible();
   await expect(hrmPage.locator('input[name="password"]')).toHaveCount(0);
   const hrmAccessToken = await hrmPage.evaluate(() => JSON.parse(sessionStorage.getItem("ory-qts-hrm:session")!).access_token);
@@ -201,11 +236,13 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
   await expect(hrmPortalTile).not.toHaveAttribute("target");
   await hrmPortalTile.click();
   await expect(hrmPage.locator(".portal-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".login-card")).toHaveCount(0);
   await expect(hrmPage.locator(".launcher-page")).toHaveCount(0);
 
   // A stale destination session must be replaced through the existing Kratos SSO session.
   await hrmPage.goto(hrm);
   await expect(hrmPage.locator(".hrm-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".auth-card")).toHaveCount(0);
   await hrmPage.evaluate(() => {
     const key = "ory-qts-hrm:session";
     const stored = JSON.parse(sessionStorage.getItem(key)!);
@@ -218,6 +255,7 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
   const staleHrmMenu = await openPortalAppSwitcher(hrmPage);
   await staleHrmMenu.locator("a", { hasText: "QTS HRM" }).click();
   await expect(hrmPage.locator(".hrm-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".auth-card")).toHaveCount(0);
   await expect(hrmPage.getByText(displayName, { exact: false }).first()).toBeVisible();
   await expect(hrmPage.locator('input[name="password"]')).toHaveCount(0);
 
@@ -232,9 +270,11 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
   });
   await hrmPage.goto(hrm);
   await expect(hrmPage.locator(".hrm-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".auth-card")).toHaveCount(0);
   await hrmPage.getByRole("button", { name: "Ứng dụng QTS" }).click();
   await hrmPage.locator(".waffle-popover a", { hasText: "Cổng thông tin QTS" }).click();
   await expect(hrmPage.locator(".portal-shell")).toBeVisible({ timeout: 25_000 });
+  await expect(hrmPage.locator(".login-card")).toHaveCount(0);
   await expect(hrmPage.locator('input[name="password"]')).toHaveCount(0);
 
   // Revoke only this isolated fixture's HRM assignment and restore it even if an assertion fails.
@@ -281,19 +321,21 @@ test("Kratos login, Hydra PKCE, HRM SSO, rotation, MFA and revocation", async ({
   await expect(page.getByText(displayName, { exact: false }).first()).toBeVisible();
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).first().click();
   await page.waitForURL(u => u.pathname === "/sign-out", { timeout: 20_000 });
-  await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
-  await page.waitForURL(u => u.origin === portal, { timeout: 20_000 });
-  const revoked = await page.evaluate(async (accessToken) => (await fetch("http://localhost:18084/oauth/userinfo", { headers: { Authorization: `Bearer ${accessToken}` } })).status, hrmAccessToken);
+  await page.getByRole("button", { name: /Đăng xuất/ }).click();
+  await page.waitForURL(u => u.origin === portal && u.pathname !== "/sign-out", { timeout: 20_000 });
+  const revoked = (await fetch("http://localhost:18084/oauth/userinfo", { headers: { Authorization: `Bearer ${hrmAccessToken}` } })).status;
   expect(revoked).toBe(401);
   await context.clearCookies();
+  await page.close().catch(() => undefined);
+  const mfaPage = await context.newPage();
   sql("update identity_tenant set require_mfa = true where slug = 'qts-global'");
   try {
-    await page.goto(portal);
-    await submitPasswordLogin(page, user.email, user.password);
-    await page.locator('input[name="totp_code"]').waitFor({ timeout: 20_000 });
-    await page.locator('input[name="totp_code"]').fill(totp(user.totp!));
-    await page.locator('button[name="method"][value="totp"]').click();
-    await startPortalFromLauncher(page);
-    await expect(page.getByText(displayName, { exact: false }).first()).toBeVisible({ timeout: 25_000 });
+    await mfaPage.goto(portal);
+    await submitPasswordLogin(mfaPage, user.email, user.password);
+    await mfaPage.locator('input[name="totp_code"]').waitFor({ timeout: 20_000 });
+    await mfaPage.locator('input[name="totp_code"]').fill(totp(user.totp!));
+    await mfaPage.locator('button[name="method"][value="totp"]').click();
+    await startPortalFromLauncher(mfaPage);
+    await expect(mfaPage.getByText(displayName, { exact: false }).first()).toBeVisible({ timeout: 25_000 });
   } finally { sql("update identity_tenant set require_mfa = false where slug = 'qts-global'"); }
 });

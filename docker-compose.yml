@@ -78,6 +78,11 @@ services:
       URLS_CONSENT: ${ORY_HYDRA_CONSENT_URL:-${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/identity-api/oauth/ory/consent}
       URLS_LOGOUT: ${ORY_HYDRA_LOGOUT_URL:-${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/identity-api/oauth/ory/logout}
       URLS_POST_LOGOUT_REDIRECT: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/login
+      SERVE_PUBLIC_CORS_ENABLED: "true"
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: ${QTS_SECURITY_CORS_ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:5174,http://localhost:5175}
+      SERVE_PUBLIC_CORS_ALLOWED_METHODS: GET,POST,OPTIONS
+      SERVE_PUBLIC_CORS_ALLOWED_HEADERS: Authorization,Content-Type
+      SERVE_PUBLIC_CORS_ALLOW_CREDENTIALS: "false"
     volumes:
       - ./infra/ory:/etc/ory:ro
     ports:
@@ -99,6 +104,15 @@ services:
       SECRETS_COOKIE: ${ORY_KRATOS_COOKIE_SECRET:?ORY_KRATOS_COOKIE_SECRET required}
       SECRETS_CIPHER: ${ORY_KRATOS_CIPHER_SECRET:?ORY_KRATOS_CIPHER_SECRET required}
       COURIER_SMTP_CONNECTION_URI: ${ORY_SMTP_CONNECTION_URI:-smtp://mailpit:1025/?disable_starttls=true}
+      SERVE_PUBLIC_BASE_URL: ${ORY_KRATOS_BROWSER_URL:-http://localhost:3001/kratos}
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/launcher
+      SELFSERVICE_ALLOWED_RETURN_URLS: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/
+      SELFSERVICE_FLOWS_ERROR_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/error
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/login
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/login
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/settings
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: ${IDENTITY_WEB_ORIGIN:-http://localhost:3001}/verification
     volumes:
       - ./infra/ory:/etc/ory:ro
     ports:

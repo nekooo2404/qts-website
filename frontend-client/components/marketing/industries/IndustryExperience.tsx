@@ -13,6 +13,7 @@ export function IndustryEcosystemMap() {
         alt="Dây chuyền sản xuất — ảnh minh họa bối cảnh kết nối dữ liệu ngành"
         fill
         priority
+        quality={78}
         sizes="(max-width: 950px) 100vw, 52vw"
       />
       <figcaption>Ảnh minh hoạ bối cảnh ngành; quy trình bám tài liệu Việt Nam — không mô tả cơ sở hay khách hàng QTS.</figcaption>
@@ -33,7 +34,7 @@ export function IndustryBento() {
             className="industry-bento-card"
           >
             <div className="industry-bento-media">
-              <Image src={industry.image} alt={industry.imageAlt} fill sizes="(max-width: 950px) 100vw, 33vw" />
+              <Image src={industry.image} alt={industry.imageAlt} fill loading="lazy" quality={70} sizes="(max-width: 950px) 100vw, 33vw" />
               <span className="industry-bento-pill"><IndustryIcon />{industry.name}</span>
             </div>
             <div className="industry-bento-body">

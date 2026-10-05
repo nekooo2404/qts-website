@@ -1,6 +1,6 @@
-import { createOidcClient, EnrollmentRequiredError, SessionExpiredError } from "@qts/oidc-client";
+import { createOidcClient, EnrollmentRequiredError, SessionExpiredError, SilentAuthorizationRequiredError } from "@qts/oidc-client";
 
-export { EnrollmentRequiredError, SessionExpiredError };
+export { EnrollmentRequiredError, SessionExpiredError, SilentAuthorizationRequiredError };
 
 export type UserInfo = {
   sub: string;

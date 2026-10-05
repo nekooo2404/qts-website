@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@qts/oidc-client": "0.1.0",
+    "animate.css": "^4.1.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

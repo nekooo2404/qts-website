@@ -3,8 +3,8 @@
 /** Premium ease used across the site - fast start, gentle settle. */
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** Duration tiers (seconds). */
-export const DUR = { fast: 0.18, base: 0.28, slow: 0.42 };
+/** Duration tiers (seconds) — lockstep with --duration-* in globals.css. */
+export const DUR = { fast: 0.15, base: 0.25, slow: 0.4 };
 
 /** Spring for the mega menu: settles in ~250ms. */
 export const SPRING_MENU: Transition = { type: "spring", stiffness: 380, damping: 30 };

@@ -11,5 +11,6 @@ const tones: Record<AlertTone, string> = {
 };
 
 export function Alert({ className, tone = "info", ...props }: HTMLAttributes<HTMLDivElement> & { tone?: AlertTone }) {
-  return <div className={cn("rounded-2xl border p-4 text-sm leading-6", tones[tone], className)} {...props} />;
+  const enter = tone === "danger" || tone === "success" ? "animate__animated animate__fadeIn animate__faster" : undefined;
+  return <div className={cn("rounded-2xl border p-4 text-sm leading-6", tones[tone], enter, className)} {...props} />;
 }

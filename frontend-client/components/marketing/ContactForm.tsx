@@ -148,8 +148,8 @@ export default function ContactForm() {
       <label className="consent-row">
         <input type="checkbox" name="consent" required /> Tôi đồng ý cho QTS xử lý dữ liệu để phản hồi yêu cầu tư vấn này.
       </label>
-      {status === "sending" && <p className="form-status" role="status" aria-live="polite">Đang kiểm tra an toàn và gửi thông tin của bạn…</p>}
-      {status === "error" && <p className="form-error" ref={errorRef} role="alert" tabIndex={-1}>{error}</p>}
+      {status === "sending" && <p className="form-status animate__animated animate__fadeIn animate__faster" role="status" aria-live="polite">Đang kiểm tra an toàn và gửi thông tin của bạn…</p>}
+      {status === "error" && <p className="form-error animate__animated animate__fadeIn animate__faster" ref={errorRef} role="alert" tabIndex={-1}>{error}</p>}
       <button
         className={`btn btn-primary ${status === "sending" ? "btn-loading" : ""}`}
         disabled={status === "sending"}

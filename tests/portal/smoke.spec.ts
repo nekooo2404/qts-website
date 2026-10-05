@@ -17,6 +17,14 @@ const testUser = {
   sid: "portal-session-1",
 };
 
+async function expectNoHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+  }));
+  expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.viewportWidth + 2);
+}
+
 async function installIdentityMock(page: Page) {
   const { privateKey, publicKey } = await generateKeyPair("RS256");
   const publicJwk = await exportJWK(publicKey);
@@ -180,6 +188,45 @@ test("portal launcher gives search feedback and opens the workspace", async ({ p
   await page.getByRole("button", { name: /Mở Cổng thông tin QTS/ }).click();
   await expect(page.getByRole("main", { name: "Tổng quan" })).toBeFocused();
   await expect(page.getByRole("heading", { name: /Xin chào, Mai/ })).toBeVisible();
+  await page.locator(".sidebar").getByRole("button", { name: /Phân tích/ }).click();
+  await expect(page.getByRole("heading", { name: "Phân tích" })).toBeVisible();
+  await expect(page.getByText("Sẽ hiển thị khi có nguồn dữ liệu vận hành được kết nối.")).toBeVisible();
+  await expect(page.getByText(/QTS Intelligence/)).toHaveCount(0);
+  await page.locator(".sidebar").getByRole("button", { name: "Nhân sự" }).click();
+  await expect(page.getByRole("heading", { name: "Con người và nhân sự" })).toBeVisible();
+  const hrDraftButton = page.locator(".projects-panel").getByRole("button", { name: /Chuẩn bị bản nháp/ });
+  await expect(hrDraftButton).toBeVisible();
+  await expect(page.getByRole("button", { name: /Thêm nhân sự/ })).toHaveCount(0);
+  await hrDraftButton.click();
+  const draftDialog = page.getByRole("dialog", { name: "Chuẩn bị bản nháp hồ sơ nhân sự" });
+  await expect(draftDialog).toBeVisible();
+  await expect(draftDialog.getByRole("button", { name: /Chuẩn bị bản nháp/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
+test("portal tablet rail keeps labels and current page visible", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await installIdentityMock(page);
+
+  await page.goto("/");
+  await page.locator(".application-card-primary").click();
+
+  const sidebar = page.locator(".sidebar");
+  const navItems = sidebar.locator(".side-link");
+  await expect(sidebar).toBeVisible();
+  await expect(navItems.first()).toHaveAttribute("aria-current", "page");
+  await expect(navItems.first()).not.toHaveAttribute("title", /.+/);
+
+  const visibleLabels = await navItems.locator("span").evaluateAll((nodes) =>
+    nodes.slice(0, 5).map((node) => {
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle(node);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+    }),
+  );
+  expect(visibleLabels.length).toBeGreaterThan(0);
+  expect(visibleLabels.every(Boolean)).toBe(true);
+  await expectNoHorizontalOverflow(page);
 });
 
 test("mobile command palette can reach admin users and keeps table context", async ({ page }) => {
@@ -194,6 +241,9 @@ test("mobile command palette can reach admin users and keeps table context", asy
   await page.getByRole("button", { name: "Tài khoản nhân viên" }).click();
 
   await expect(page.getByRole("heading", { name: "Tài khoản nhân viên" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Chuẩn bị yêu cầu/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Thêm tài khoản/ })).toHaveCount(0);
   await expect(page.locator(".admin-users-table td[data-label='Trạng thái']")).toContainText("Hoạt động");
   await expect(page.locator(".admin-users-table td[data-label='Ứng dụng']")).toContainText("QTS HRM");
+  await expectNoHorizontalOverflow(page);
 });

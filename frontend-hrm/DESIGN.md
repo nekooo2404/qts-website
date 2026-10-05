@@ -16,10 +16,10 @@
 
 | Role | CSS token / value | Shipped use |
 |---|---|---|
-| Product action | `--qts-blue: #2563eb` | primary buttons, active navigation, chart series, focus, selected controls |
-| Product hover | `--qts-blue-hover: #1d4ed8` | primary-button hover, active text, active chart bar |
-| Product subtle | `--qts-blue-subtle: #eff6ff` | active navigation, primary KPI, avatars, selected states |
-| Product ink | `--qts-blue-ink: #1e40af` | primary KPI value, agenda time, security emphasis |
+| Product action | `--qts-blue: #007AFF` | primary buttons, active navigation, chart series, focus, selected controls |
+| Product hover | `--qts-blue-hover: #0051D5` | primary-button hover, active text, active chart bar |
+| Product subtle | `--qts-blue-subtle: #EAF2FF` | active navigation, primary KPI, avatars, selected states |
+| Product ink | `--qts-blue-ink: #0051D5` | primary KPI value, agenda time, security emphasis |
 | Success | `--success: #16a34a`; `--success-subtle: #f0fdf4` | positive badges, status dots, completion timeline |
 | Warning | `--warning: #f59e0b`; `--warning-subtle: #fffbeb` | fixture notice, pending status, operational attention |
 | Danger | `--danger: #dc2626`; `--danger-subtle: #fef2f2` | errors, destructive controls, incomplete/failed status |
@@ -32,7 +32,7 @@ QTS Blue is the only product-brand accent. Green, amber, and red communicate sys
 
 ### Typography
 
-- **Family:** `Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Arial, sans-serif`; Inter 400/500/600/700 is loaded by `index.html`.
+- **Family:** `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Arial, sans-serif`; the UI follows the iOS-light QTS direction without requiring a remote font.
 - **Numerals:** tabular numerals are global; KPI, chart, agenda-time, and payroll values preserve numeric alignment.
 - **Display:** command greeting is `clamp(27px, 3vw, 34px)` at `1.08` with `-.045em`; launcher heading reaches `36px`.
 - **Page title:** `24px/32px`, `-.035em`; mobile page title is `22px/28px`.

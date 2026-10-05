@@ -86,6 +86,7 @@ import {
   redeemAuthorizationResponse,
   restoreSession,
   SessionExpiredError,
+  SilentAuthorizationRequiredError,
   type LauncherApplication,
 } from "./auth/oidc";
 import { pickHrmRole, sessionFromUserInfo, type HrmSession } from "./auth/session";
@@ -134,6 +135,7 @@ type Page =
   | "reports"
   | "workflow"
   | "permissions";
+type SidebarNavEntry = { page: Page; label: string; icon: Icon; show?: boolean };
 type ProfileTab = "personal" | "employment" | "contract" | "documents" | "attendance" | "payroll" | "insurance" | "history" | "audit";
 type HeaderSurface = "waffle" | "notifications" | "profile" | null;
 
@@ -209,6 +211,43 @@ function isEmployeeVisible(scope: ReturnType<typeof scopeFor>, actorCode: string
   return visibleEmployees(scope, actorCode).some((row) => row.code === employee.code);
 }
 
+function currentWorkflowStep(item: WorkflowItem) {
+  return item.steps.find((step) => step.status === "Current");
+}
+
+function workflowStepLabel(stepRole: string) {
+  if (stepRole === "Manager") return "Quản lý trực tiếp";
+  if (stepRole === "HR") return "Nhân sự";
+  if (stepRole === "Completed") return "Hoàn tất";
+  return stepRole;
+}
+
+function workflowActorLabel(role: Role) {
+  if (role === "super-admin") return "Quản trị đặc quyền";
+  if (role === "hr-manager" || role === "hr-staff") return "Nhân sự";
+  if (role === "manager") return "Quản lý trực tiếp";
+  if (role === "employee") return "Người gửi";
+  return ROLE_LABEL[role];
+}
+
+function workflowDecision(item: WorkflowItem, role: Role, actorCode: string, hasApprovalPermission: boolean) {
+  const step = currentWorkflowStep(item);
+  const employee = employeeByCode(item.employeeCode);
+  const terminal = item.status === "Completed" || item.status === "Rejected" || !step;
+  if (terminal) return { canAct: false, step, note: "Yêu cầu đã kết thúc." };
+  if (!hasApprovalPermission) return { canAct: false, step, note: `${workflowActorLabel(role)} chỉ có quyền theo dõi yêu cầu này.` };
+  if (step.role === "Manager") {
+    const directManager = employee?.managerCode === actorCode;
+    const canAct = role === "super-admin" || (role === "manager" && directManager);
+    return { canAct, step, note: canAct ? "Bạn đang xử lý bước quản lý trực tiếp." : "Chờ quản lý trực tiếp xử lý bước này." };
+  }
+  if (step.role === "HR") {
+    const canAct = role === "super-admin" || role === "hr-manager" || role === "hr-staff";
+    return { canAct, step, note: canAct ? "Bạn đang xử lý bước nhân sự." : "Chờ HR xử lý bước này." };
+  }
+  return { canAct: false, step, note: `Bước ${workflowStepLabel(step.role)} không có thao tác thủ công.` };
+}
+
 function QtsMark() {
   return <img className="qts-mark" src="/images/brand/qts-logo.webp" alt="" width={29} height={29} />;
 }
@@ -264,47 +303,65 @@ function Sidebar({
       ? "hr-dashboard"
       : null;
   const homePage: Page = dashboardPage ?? (canAccess("hrm.payroll.read") ? "payroll" : "profile");
-  const primary = dashboardPage ? [{ page: dashboardPage, label: "Tổng quan", icon: HomeIcon }] : [];
+  const primary: SidebarNavEntry[] = dashboardPage ? [{ page: dashboardPage, label: "Tổng quan", icon: HomeIcon }] : [];
   const people = [
     { page: "employees", label: "Hồ sơ nhân viên", icon: IdentificationIcon, show: role !== "accountant" && canAccess("hrm.employee.read") },
     { page: "organization", label: "Cơ cấu tổ chức", icon: BuildingOffice2Icon, show: role !== "accountant" && canAccess("organization.department.read") },
     { page: "documents", label: "Văn bản", icon: DocumentTextIcon, show: canAccess("hrm.document.view") },
     { page: "contracts", label: "Hợp đồng", icon: ClipboardDocumentCheckIcon, show: canAccess("hrm.contract.read") },
-  ] satisfies Array<{ page: Page; label: string; icon: Icon; show: boolean }>;
-  const operations = [
-    { page: "recruitment", label: "Tuyển dụng", icon: UserPlusIcon, show: canAccess("hrm.nav.recruitment") },
-    { page: "onboarding", label: "Tiếp nhận nhân sự", icon: CheckCircleIcon, show: canAccess("hrm.onboarding.read") },
+  ] satisfies SidebarNavEntry[];
+  const time = [
     { page: "attendance", label: "Chấm công", icon: CalendarDaysIcon, show: canAccess("hrm.attendance.read") },
     { page: "leave", label: "Nghỉ phép", icon: ClockIcon, show: canAccess("hrm.leave.read") || canAccess("hrm.leave.read_own") },
-    { page: "payroll", label: "Bảng lương", icon: BanknotesIcon, show: canAccess("hrm.payroll.read") },
-    { page: "kpi", label: "KPI", icon: ChartBarSquareIcon, show: canAccess("hrm.kpi.read") },
+    { page: "workflow", label: "Phê duyệt", icon: QueueListIcon, show: canAccess("hrm.workflow.read") || canAccess("hrm.workflow.approve") },
+  ] satisfies SidebarNavEntry[];
+  const lifecycle = [
+    { page: "recruitment", label: "Tuyển dụng", icon: UserPlusIcon, show: canAccess("hrm.nav.recruitment") },
+    { page: "onboarding", label: "Tiếp nhận nhân sự", icon: CheckCircleIcon, show: canAccess("hrm.onboarding.read") },
     { page: "training", label: "Đào tạo", icon: RectangleStackIcon, show: canAccess("hrm.training.read") },
     { page: "assets", label: "Tài sản", icon: BriefcaseIcon, show: canAccess("hrm.asset.read") },
-    { page: "workflow", label: "Phê duyệt", icon: QueueListIcon, show: canAccess("hrm.workflow.read") || canAccess("hrm.workflow.approve") },
+  ] satisfies SidebarNavEntry[];
+  const performance = [
+    { page: "payroll", label: "Bảng lương", icon: BanknotesIcon, show: canAccess("hrm.payroll.read") },
+    { page: "kpi", label: "KPI", icon: ChartBarSquareIcon, show: canAccess("hrm.kpi.read") },
     { page: "reports", label: "Báo cáo", icon: ChartBarSquareIcon, show: canAccess("hrm.report.read") },
+  ] satisfies SidebarNavEntry[];
+  const administration = [
     { page: "permissions", label: "Quản trị", icon: ShieldCheckIcon, show: canAccess("hrm.nav.system") || canAccess("hrm.permission.manage") },
-  ] satisfies Array<{ page: Page; label: string; icon: Icon; show: boolean }>;
+  ] satisfies SidebarNavEntry[];
   const active = (candidate: Page) => candidate === page || (candidate === "hr-dashboard" && page === "ceo-dashboard");
+  const renderGroup = (label: string, items: SidebarNavEntry[]) => {
+    const visibleItems = items.filter((item) => item.show !== false);
+    if (!visibleItems.length) return null;
+    return <section className="nav-group" aria-label={label} key={label}>
+      <p className="nav-heading">{label}</p>
+      {visibleItems.map((item) => <NavItem key={item.label} label={item.label} icon={item.icon} active={item.page === "employees" && page === "profile" || active(item.page)} onClick={() => onNavigate(item.page)} />)}
+    </section>;
+  };
 
   return <aside className="sidebar">
     <div className="sidebar-head">
-      <button className="hrm-brand" onClick={() => onNavigate(homePage)} type="button" aria-label="Trang chủ QTS HRM">
-        <QtsMark /><span>QTS <small>Nền tảng nhân sự</small></span>
-      </button>
+      <div className="sidebar-brand-stack">
+        <button className="hrm-brand" onClick={() => onNavigate(homePage)} type="button" aria-label="Trang chủ QTS HRM">
+          <QtsMark /><span>QTS <small>Nền tảng nhân sự</small></span>
+        </button>
+        <span className="sidebar-role-pill">Vai trò · {ROLE_LABEL[role]}</span>
+      </div>
     </div>
     <nav className="sidebar-nav" aria-label="Điều hướng HRM">
       {primary.map((item) => <NavItem key={item.label} {...item} active={active(item.page)} onClick={() => onNavigate(item.page)} />)}
-      <p className="nav-heading">Nhân sự</p>
-      {people.filter((item) => item.show).map((item) => <NavItem key={item.label} label={item.label} icon={item.icon} active={item.page === "employees" && page === "profile" || active(item.page)} onClick={() => onNavigate(item.page)} />)}
-      <p className="nav-heading">Vận hành</p>
-      {operations.filter((item) => item.show).map((item) => <NavItem key={item.label} label={item.label} icon={item.icon} active={active(item.page)} onClick={() => onNavigate(item.page)} />)}
+      {renderGroup("Hồ sơ", people)}
+      {renderGroup("Thời gian", time)}
+      {renderGroup("Vòng đời", lifecycle)}
+      {renderGroup("Hiệu suất", performance)}
+      {renderGroup("Quản trị", administration)}
     </nav>
-    <footer className="sidebar-help"><LifebuoyIcon aria-hidden="true" /><span>Hỗ trợ QTS</span></footer>
+    <footer className="sidebar-help" aria-label="Hỗ trợ HRM"><LifebuoyIcon aria-hidden="true" /><span><b>Hỗ trợ QTS</b><small>Hướng dẫn sử dụng</small></span></footer>
   </aside>;
 }
 
 function NavItem({ label, icon: Icon, active, onClick }: { label: string; icon: Icon; active: boolean; onClick: () => void }) {
-  return <button type="button" className={`nav-item ${active ? "active" : ""}`} onClick={onClick} aria-current={active ? "page" : undefined} aria-label={label} title={label} data-label={label}><Icon aria-hidden="true" /><span>{label}</span></button>;
+  return <button type="button" className={`nav-item ${active ? "active" : ""}`} onClick={onClick} aria-current={active ? "page" : undefined} aria-label={label} data-label={label}><Icon aria-hidden="true" /><span>{label}</span></button>;
 }
 
 function BottomNav({ page, role, onNavigate, onProfile }: { page: Page; role: Role; onNavigate: (page: Page) => void; onProfile: () => void }) {
@@ -560,12 +617,12 @@ function HrDashboard({ role, actorName, workflowItems, prototype, onNavigate, on
       <div className="hrm-workbench-copy">
         <span>Bàn điều phối HRM</span>
         <h2>Quyền, phạm vi dữ liệu và hàng đợi cùng một bề mặt.</h2>
-        <p>Màn hình ưu tiên việc cần xử lý, nguồn dữ liệu và ranh giới bảo mật thay vì chỉ gom số liệu trang trí.</p>
+        <p>Màn hình ưu tiên việc cần xử lý, nguồn dữ liệu và ranh giới bảo mật trước khi mở chi tiết nghiệp vụ.</p>
       </div>
       <div className="hrm-workbench-table">
         <table>
           <thead><tr><th>Miền dữ liệu</th><th>Trạng thái</th><th>Kiểm soát</th></tr></thead>
-          <tbody>{workbenchRows.map(row => <tr key={row.area}><td>{row.area}</td><td><b>{row.state}</b></td><td>{row.owner}</td></tr>)}</tbody>
+          <tbody>{workbenchRows.map(row => <tr key={row.area}><td data-label="Miền dữ liệu">{row.area}</td><td data-label="Trạng thái"><b>{row.state}</b></td><td data-label="Kiểm soát">{row.owner}</td></tr>)}</tbody>
         </table>
       </div>
     </section>
@@ -875,11 +932,10 @@ function AttendanceTable({ rows }: { rows: AttendanceRow[] }) {
   })}</tbody></table></div>;
 }
 
-function WorkflowTimeline({ item, role, onAdvance, onReject }: { item: WorkflowItem; role: Role; onAdvance: (id: string) => void; onReject: (id: string) => void }) {
+function WorkflowTimeline({ item, role, actorCode, onAdvance, onReject }: { item: WorkflowItem; role: Role; actorCode: string; onAdvance: (id: string) => void; onReject: (id: string) => void }) {
   const canAccess = usePermissionCheck(role);
-  const currentIndex = item.steps.findIndex((step) => step.status === "Current");
-  const canAction = canAccess("hrm.workflow.approve") && ((currentIndex === 1 && role === "manager") || (currentIndex === 2 && (role === "hr-manager" || role === "hr-staff" || role === "super-admin")));
-  return <div className="workflow-timeline">{item.steps.map((step, index) => <div className={`timeline-step timeline-${step.status.toLowerCase()}`} key={`${step.role}-${index}`}><i>{step.status === "Done" ? <CheckCircleIcon /> : step.status === "Rejected" ? <XCircleIcon /> : <span>{index + 1}</span>}</i><div><div className="timeline-title"><b>{step.role}</b>{step.status === "Current" && <Badge tone="warning">Chờ xử lý</Badge>}{step.status === "Done" && <Badge tone="success">Hoàn tất</Badge>}</div><span>{step.name}</span>{step.at && <time>{step.at}</time>}{step.note && <p>{step.note}</p>}</div></div>)}{canAction && <div className="timeline-actions"><Button variant="danger" onClick={() => onReject(item.id)}><XCircleIcon /> Từ chối</Button><Button variant="primary" onClick={() => onAdvance(item.id)}><CheckCircleIcon /> Phê duyệt</Button></div>}</div>;
+  const decision = workflowDecision(item, role, actorCode, canAccess("hrm.workflow.approve"));
+  return <div className="workflow-timeline">{item.steps.map((step, index) => <div className={`timeline-step timeline-${step.status.toLowerCase()}`} key={`${step.role}-${index}`}><i>{step.status === "Done" ? <CheckCircleIcon /> : step.status === "Rejected" ? <XCircleIcon /> : <span>{index + 1}</span>}</i><div><div className="timeline-title"><b>{workflowStepLabel(step.role)}</b>{step.status === "Current" && <Badge tone="warning">Chờ xử lý</Badge>}{step.status === "Done" && <Badge tone="success">Hoàn tất</Badge>}</div><span>{step.name}</span>{step.at && <time>{step.at}</time>}{step.note && <p>{step.note}</p>}</div></div>)}<div className="timeline-decision" role="status"><ShieldCheckIcon aria-hidden="true" /><span>{decision.note}</span></div>{decision.canAct && decision.step && <div className="timeline-actions"><Button variant="danger" aria-label={`Từ chối yêu cầu ${item.id} ở bước ${workflowStepLabel(decision.step.role)}`} onClick={() => onReject(item.id)}><XCircleIcon /> Từ chối</Button><Button variant="primary" aria-label={`Phê duyệt yêu cầu ${item.id} ở bước ${workflowStepLabel(decision.step.role)}`} onClick={() => onAdvance(item.id)}><CheckCircleIcon /> Phê duyệt</Button></div>}</div>;
 }
 
 function LateEarlyScreen({ role, actorCode, workflowItems, selectedId, setSelectedId, onSubmit, onAdvance, onReject }: { role: Role; actorCode: string; workflowItems: WorkflowItem[]; selectedId: string; setSelectedId: (id: string) => void; onSubmit: (type: "Đi muộn / về sớm", payload: string) => void; onAdvance: (id: string) => void; onReject: (id: string) => void }) {
@@ -900,8 +956,8 @@ function LateEarlyScreen({ role, actorCode, workflowItems, selectedId, setSelect
   };
   return <>
     <PageHeader title="Đăng ký đi muộn / về sớm" description="Mọi điều chỉnh đi qua Manager và HR trước khi hệ thống chấm công áp dụng." breadcrumb={["Chấm công", "Đăng ký điều chỉnh"]} />
-    <section className="late-early-layout"><Card title="Tạo đăng ký điều chỉnh" description={`Người gửi: ${actor.legalName} · ${actor.code}`}><div className="form-grid"><label><span>Ngày áp dụng</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><label><span>Loại điều chỉnh</span><select value={kind} onChange={(event) => setKind(event.target.value)}><option>Đi muộn</option><option>Về sớm</option></select></label><label><span>Số phút</span><input type="number" min="1" value={minutes} onChange={(event) => setMinutes(event.target.value)} /></label><label><span>File minh chứng</span><input type="file" accept=".pdf,.doc,.docx" /></label><label className="form-wide"><span>Lý do</span><textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nêu rõ lý do và thông tin cần đối soát" rows={4} /></label></div><SecurityNote>Thao tác chỉ tạo bản nháp cục bộ. Dữ liệu chỉ được ghi chính thức khi dịch vụ chấm công và phê duyệt xử lý.</SecurityNote><div className="form-actions"><Button variant="primary" disabled={!reason.trim()} onClick={submitted}><DocumentCheckIcon /> Gửi đăng ký</Button></div></Card><Card title="Dòng phê duyệt" description={selected?.payload ?? "Chưa có đăng ký trong phạm vi dữ liệu."}>{selected ? <WorkflowTimeline item={selected} role={role} onAdvance={onAdvance} onReject={onReject} /> : <EmptyState title="Chưa có đăng ký" detail="Dùng form bên trái để gửi đăng ký." />}</Card></section>
-    <Card title="Hàng đợi điều chỉnh giờ làm" description="Đơn theo Phạm vi dữ liệu và bước phê duyệt hiện tại.">{queue.length ? <div className="workflow-list compact-workflow-list">{queue.map((item) => <button type="button" key={item.id} className={item.id === selected?.id ? "selected" : ""} onClick={() => setSelectedId(item.id)}><span><b>{item.employeeName}</b><small>{item.payload}</small></span><span><StatusBadge status={item.status} /><small>{item.current}</small></span><ChevronRightIcon /></button>)}</div> : <EmptyState title="Không có đơn điều chỉnh" />}</Card>
+    <section className="late-early-layout"><Card title="Tạo đăng ký điều chỉnh" description={`Người gửi: ${actor.legalName} · ${actor.code}`}><div className="form-grid"><label><span>Ngày áp dụng</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label><label><span>Loại điều chỉnh</span><select value={kind} onChange={(event) => setKind(event.target.value)}><option>Đi muộn</option><option>Về sớm</option></select></label><label><span>Số phút</span><input type="number" min="1" value={minutes} onChange={(event) => setMinutes(event.target.value)} /></label><label><span>File minh chứng</span><input type="file" accept=".pdf,.doc,.docx" /></label><label className="form-wide"><span>Lý do</span><textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Nêu rõ lý do và thông tin cần đối soát" rows={4} /></label></div><SecurityNote>Thao tác chỉ tạo bản nháp cục bộ. Dữ liệu chỉ được ghi chính thức khi dịch vụ chấm công và phê duyệt xử lý.</SecurityNote><div className="form-actions"><Button variant="primary" disabled={!reason.trim()} onClick={submitted}><DocumentCheckIcon /> Gửi đăng ký</Button></div></Card><Card title="Dòng phê duyệt" description={selected?.payload ?? "Chưa có đăng ký trong phạm vi dữ liệu."}>{selected ? <WorkflowTimeline item={selected} role={role} actorCode={actorCode} onAdvance={onAdvance} onReject={onReject} /> : <EmptyState title="Chưa có đăng ký" detail="Dùng form bên trái để gửi đăng ký." />}</Card></section>
+    <Card title="Hàng đợi điều chỉnh giờ làm" description="Đơn theo Phạm vi dữ liệu và bước phê duyệt hiện tại.">{queue.length ? <div className="workflow-list compact-workflow-list">{queue.map((item) => <button type="button" key={item.id} className={item.id === selected?.id ? "selected" : ""} aria-pressed={item.id === selected?.id} aria-label={`Chọn yêu cầu ${item.id}: ${item.employeeName}, bước ${workflowStepLabel(currentWorkflowStep(item)?.role ?? item.current)}`} onClick={() => setSelectedId(item.id)}><span><b>{item.employeeName}</b><small>{item.payload}</small></span><span><StatusBadge status={item.status} /><small>{workflowStepLabel(currentWorkflowStep(item)?.role ?? item.current)}</small></span><ChevronRightIcon /></button>)}</div> : <EmptyState title="Không có đơn điều chỉnh" />}</Card>
   </>;
 }
 
@@ -943,7 +999,10 @@ function WorkflowScreen({ role, actorCode, workflowItems, selectedId, setSelecte
   if (!selected) return <EmptyState title="Không có yêu cầu phê duyệt" detail="Không có yêu cầu thuộc phạm vi dữ liệu hiện tại." />;
   return <>
     <PageHeader title="Quản lý phê duyệt" description="Dòng phê duyệt sử dụng quan hệ quản lý trực tiếp, không suy vòng vèo qua sơ đồ tổ chức." breadcrumb={["Phê duyệt"]} />
-    <section className="workflow-layout"><Card title="Hàng đợi phê duyệt" description={`${items.filter((item) => item.status === "Pending").length} yêu cầu đang chờ xử lý`}><div className="workflow-list">{items.map((item) => <button type="button" key={item.id} className={item.id === selected.id ? "selected" : ""} onClick={() => setSelectedId(item.id)}><span><Badge tone={item.type === "Nghỉ phép" ? "info" : item.type === "Điều chỉnh công" ? "warning" : "blue"}>{item.type}</Badge><b>{item.employeeName}</b><small>{item.id} · {item.submittedAt}</small></span><span><StatusBadge status={item.status} /><small>Bước: {item.current}</small></span><ChevronRightIcon /></button>)}</div></Card><Card title={selected.type === "Nghỉ phép" ? "Đơn nghỉ phép" : "Yêu cầu điều chỉnh"} description={selected.payload}><div className="workflow-detail-head"><span>{selectedEmployee ? <Avatar employee={selectedEmployee} size="md" /> : null}<span><b>{selected.employeeName}</b><small>{selected.employeeCode} · {selected.submittedAt}</small></span></span><StatusBadge status={selected.status} /></div><WorkflowTimeline item={selected} role={role} onAdvance={onAdvance} onReject={onReject} /><SecurityNote>Nhật ký phê duyệt lưu người tạo, người duyệt, thời điểm, trạng thái và dữ liệu trước/sau ở từng bước.</SecurityNote></Card></section>
+    <section className="workflow-layout"><Card title="Hàng đợi phê duyệt" description={`${items.filter((item) => item.status === "Pending").length} yêu cầu đang chờ xử lý`}><div className="workflow-list">{items.map((item) => {
+      const current = currentWorkflowStep(item);
+      return <button type="button" key={item.id} className={item.id === selected.id ? "selected" : ""} aria-pressed={item.id === selected.id} aria-label={`Chọn yêu cầu ${item.id}: ${item.type} của ${item.employeeName}, bước ${workflowStepLabel(current?.role ?? item.current)}`} onClick={() => setSelectedId(item.id)}><span><Badge tone={item.type === "Nghỉ phép" ? "info" : item.type === "Điều chỉnh công" ? "warning" : "blue"}>{item.type}</Badge><b>{item.employeeName}</b><small>{item.id} · {item.submittedAt}</small></span><span><StatusBadge status={item.status} /><small>Bước: {workflowStepLabel(current?.role ?? item.current)}</small></span><ChevronRightIcon /></button>;
+    })}</div></Card><Card title={selected.type === "Nghỉ phép" ? "Đơn nghỉ phép" : "Yêu cầu điều chỉnh"} description={selected.payload}><div className="workflow-detail-head"><span>{selectedEmployee ? <Avatar employee={selectedEmployee} size="md" /> : null}<span><b>{selected.employeeName}</b><small>{selected.employeeCode} · {selected.submittedAt}</small></span></span><StatusBadge status={selected.status} /></div><WorkflowTimeline item={selected} role={role} actorCode={actorCode} onAdvance={onAdvance} onReject={onReject} /><SecurityNote>Nhật ký phê duyệt lưu người tạo, người duyệt, thời điểm, trạng thái và dữ liệu trước/sau ở từng bước.</SecurityNote></Card></section>
   </>;
 }
 
@@ -1002,9 +1061,9 @@ function AuthenticationScreen({ phase, error, onSignIn, actionLabel = "Thử l�
   const enrollmentUrl = `${identityWebOrigin}/enrollment-pending`;
   const title = signingOut ? "Đang chuyển đến xác nhận đăng xuất" : loading ? "Đang xác minh danh tính" : expired ? "Phiên đăng nhập đã hết hạn" : enrollmentPending ? "Tài khoản đang chờ hoàn tất kích hoạt" : "Không thể xác minh danh tính";
   const detail = signingOut
-    ? "Phiên hiện tại vẫn được giữ cho đến khi bạn xác nhận tại QTS Identity."
+    ? "Phiên hiện tại vẫn được giữ cho đến khi bạn xác nhận đăng xuất."
     : loading
-      ? "QTS HRM đang tự động kết nối QTS Identity và kiểm tra quyền truy cập."
+      ? "QTS HRM đang tự động xác minh phiên đăng nhập và kiểm tra quyền truy cập."
       : expired
         ? "Phiên đã hết hạn. HRM sẽ tự động bắt đầu lại xác minh danh tính."
         : enrollmentPending
@@ -1020,13 +1079,13 @@ function AuthenticationScreen({ phase, error, onSignIn, actionLabel = "Thử l�
         <Skeleton className="skeleton-text" style={{ width: "92%" }} />
         <Skeleton className="skeleton-text" style={{ width: "58%" }} />
       </div>}
-      {enrollmentPending ? <><p className="auth-error auth-warning" role="alert">{error || "Quản trị viên sẽ xác minh và kích hoạt tài khoản sau khi hoàn tất các bước bảo mật."}</p><div className="auth-actions"><a className="button button-primary" href={enrollmentUrl}>Mở QTS Identity để hoàn tất</a><Button variant="secondary" onClick={onSignIn}>Thử lại sau khi hoàn tất</Button></div></> : <>{error && <p className="auth-error" role="alert">{error}</p>}{!loading && <Button variant="primary" onClick={onSignIn}>{actionLabel} <ArrowRightOnRectangleIcon /></Button>}</>}
+      {enrollmentPending ? <><p className="auth-error auth-warning animate__animated animate__fadeIn animate__faster" role="alert">{error || "Quản trị viên sẽ xác minh và kích hoạt tài khoản sau khi hoàn tất các bước bảo mật."}</p><div className="auth-actions"><a className="button button-primary" href={enrollmentUrl}>Hoàn tất bảo mật tài khoản</a><Button variant="secondary" onClick={onSignIn}>Thử lại sau khi hoàn tất</Button></div></> : <>{error && <p className="auth-error animate__animated animate__fadeIn animate__faster" role="alert">{error}</p>}{!loading && <Button variant="primary" onClick={onSignIn}>{actionLabel} <ArrowRightOnRectangleIcon /></Button>}</>}
     </section>
   </main>;
 }
 
 function MissingEmployeeLinkScreen({ email, onSignOut }: { email: string; onSignOut: () => void }) {
-  return <main className="auth-screen"><section className="auth-card"><div className="auth-brand"><QtsMark /><span>QTS <small>Nền tảng nhân sự</small></span></div><h1>Chưa liên kết hồ sơ nhân sự</h1><p>Tài khoản {email} đã xác thực qua QTS Identity nhưng chưa có mã nhân viên HRM. HRM không mở dữ liệu hoặc tự suy diễn hồ sơ nhân sự từ vai trò.</p><p className="auth-error" role="alert">Vui lòng hoàn tất liên kết mã nhân viên trong hệ thống HRM và QTS Identity trước khi vào HRM chính thức.</p><Button variant="primary" onClick={onSignOut}>Đăng xuất an toàn <ArrowRightOnRectangleIcon /></Button></section></main>;
+  return <main className="auth-screen"><section className="auth-card"><div className="auth-brand"><QtsMark /><span>QTS <small>Nền tảng nhân sự</small></span></div><h1>Chưa liên kết hồ sơ nhân sự</h1><p>Tài khoản {email} đã xác thực qua QTS Identity nhưng chưa có mã nhân viên HRM. HRM không mở dữ liệu hoặc tự suy diễn hồ sơ nhân sự từ vai trò.</p><p className="auth-error animate__animated animate__fadeIn animate__faster" role="alert">Vui lòng hoàn tất liên kết mã nhân viên trong hệ thống HRM và QTS Identity trước khi vào HRM chính thức.</p><Button variant="primary" onClick={onSignOut}>Đăng xuất an toàn <ArrowRightOnRectangleIcon /></Button></section></main>;
 }
 
 function ProductionConfigurationScreen({ issue }: { issue: string }) {
@@ -1091,6 +1150,7 @@ export function App() {
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectUndo, setRejectUndo] = useState<WorkflowItem | null>(null);
+  const rejectReasonRef = useRef<HTMLTextAreaElement>(null);
   const rejectUndoTimer = useRef<number | null>(null);
   const online = useOnlineStatus();
 
@@ -1141,6 +1201,16 @@ export function App() {
         window.history.replaceState({}, document.title, "/");
       } catch (error) {
         if (cancelled) return;
+        if (error instanceof SilentAuthorizationRequiredError || new URLSearchParams(window.location.search).get("error") === "consent_required") {
+          window.history.replaceState({}, document.title, "/");
+          setPhase("redirecting");
+          void beginAuthorization().catch((reason) => {
+            if (isIdentityUnavailableError(reason) && reloadOnceForIdentityRecovery()) return;
+            setAuthenticationError(reason instanceof Error ? reason.message : "Không thể bắt đầu đăng nhập.");
+            setPhase("error");
+          });
+          return;
+        }
         clearHrmSession();
         setAuthenticationError(error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập.");
         setPhase(error instanceof EnrollmentRequiredError ? "enrollment-pending" : error instanceof SessionExpiredError ? "expired" : "error");
@@ -1154,7 +1224,7 @@ export function App() {
     if (prototype || isAuthorizationCallback() || phase !== "unauthenticated" || authorizationStarted.current) return;
     authorizationStarted.current = true;
     if (ssoHandoff) window.history.replaceState({}, document.title, "/");
-    signIn();
+    signIn({ silent: true });
   }, [phase, prototype, ssoHandoff]);
 
   useEffect(() => {
@@ -1175,12 +1245,13 @@ export function App() {
         if (cancelled) return;
         if (error instanceof SessionExpiredError) {
           clearHrmSession();
-          if (ssoHandoff) {
-            setPhase("unauthenticated");
-            return;
-          }
-          setAuthenticationError(error.message);
-          setPhase("expired");
+          setAuthenticationError("");
+          setPhase("redirecting");
+          void beginAuthorization().catch((reason) => {
+            if (isIdentityUnavailableError(reason) && reloadOnceForIdentityRecovery()) return;
+            setAuthenticationError(reason instanceof Error ? reason.message : "Không thể bắt đầu đăng nhập.");
+            setPhase("error");
+          });
           return;
         }
         setAuthenticationError(error instanceof Error ? error.message : "Không tải được phiên. Vui lòng thử lại.");
@@ -1208,11 +1279,12 @@ export function App() {
     mainContentRef.current?.focus({ preventScroll: true });
   }, [page, phase, searchOpen]);
 
-  const signIn = () => {
+  const signIn = (options: { silent?: boolean } = {}) => {
+    const silent = options.silent === true;
     setAuthenticationError("");
     if (phase === "redirecting") return;
     setPhase("redirecting");
-    void beginAuthorization().catch((error) => {
+    void beginAuthorization(silent ? { prompt: "none" } : undefined).catch((error) => {
       if (isIdentityUnavailableError(error) && reloadOnceForIdentityRecovery()) return;
       setAuthenticationError(error instanceof Error ? error.message : "Không thể bắt đầu đăng nhập.");
       setPhase("error");
@@ -1240,10 +1312,13 @@ export function App() {
   const directory = visibleEmployees(effectiveDataScope, actorCode);
   if (!actor) return <AuthenticationScreen phase="error" error="Không xác định được hồ sơ HRM cho tài khoản này. Vui lòng liên hệ quản trị viên." onSignIn={signOut} actionLabel="Đăng xuất an toàn" />;
   const selectedEmployee = employeeByCode(selectedEmployeeCode) ?? actor;
+  const effectivePermissions = prototype ? null : session?.permissions ?? [];
+  const hasActivePermission = (permission: Permission) => prototype ? roleCan(activeRole, permission) : (effectivePermissions ?? []).includes(permission);
 
   const navigate = (next: Page) => {
     setPage(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   };
   const selectEmployee = (code: string) => { setSelectedEmployeeCode(code); navigate("profile"); };
   const logAudit = (message: string) => {
@@ -1261,6 +1336,8 @@ export function App() {
   const advanceWorkflow = (id: string) => {
     setWorkflowItems((items) => items.map((item) => {
       if (item.id !== id) return item;
+      const decision = workflowDecision(item, activeRole, actorCode, hasActivePermission("hrm.workflow.approve"));
+      if (!decision.canAct) return item;
       const currentIndex = item.steps.findIndex((step) => step.status === "Current");
       if (currentIndex < 0) return item;
       const steps = item.steps.map((step, index) => {
@@ -1268,8 +1345,9 @@ export function App() {
         if (index === currentIndex + 1) return { ...step, status: "Current" as const };
         return step;
       });
-      const completed = currentIndex === steps.length - 2;
-      if (completed) steps[steps.length - 1] = { ...steps[steps.length - 1], status: "Done", at: "2026-09-11 10:19", note: "Đã đồng bộ hệ thống chấm công." };
+      const hasCompletionStep = steps.at(-1)?.role === "Completed";
+      const completed = hasCompletionStep ? currentIndex >= steps.length - 2 : currentIndex >= steps.length - 1;
+      if (completed && hasCompletionStep) steps[steps.length - 1] = { ...steps[steps.length - 1], status: "Done", at: "2026-09-11 10:19", note: "Đã đồng bộ hệ thống chấm công." };
       return { ...item, steps, current: completed ? "Completed" : steps[currentIndex + 1]?.role ?? "Completed", status: completed ? "Completed" : "Pending" };
     }));
     logAudit(`phê duyệt yêu cầu ${id}`);
@@ -1277,11 +1355,15 @@ export function App() {
   const rejectWorkflow = (id: string, reason: string) => {
     setWorkflowItems((items) => items.map((item) => {
       if (item.id !== id) return item;
+      const decision = workflowDecision(item, activeRole, actorCode, hasActivePermission("hrm.workflow.approve"));
+      if (!decision.canAct) return item;
       return { ...item, status: "Rejected", current: "Rejected", steps: item.steps.map((step) => step.status === "Current" ? { ...step, status: "Rejected", at: "2026-09-11 10:18", note: reason } : step) };
     }));
     logAudit(`từ chối yêu cầu ${id}; lý do: ${reason}`);
   };
   const requestReject = (id: string) => {
+    const target = workflowItems.find((item) => item.id === id);
+    if (!target || !workflowDecision(target, activeRole, actorCode, hasActivePermission("hrm.workflow.approve")).canAct) return;
     setRejectTarget(id);
     setRejectReason("");
   };
@@ -1358,7 +1440,6 @@ export function App() {
     default: screen = <NotFoundScreen onBack={() => navigate(appPageFor(activeRole, actorCode))} />; break;
   }
 
-  const effectivePermissions = prototype ? null : session?.permissions ?? [];
   return <AuthorizationProvider permissions={effectivePermissions} dataScope={effectiveDataScope}>
     <div className="hrm-shell">
       <a className="skip-link" href="#main">Bỏ qua đến nội dung</a>
@@ -1400,10 +1481,11 @@ export function App() {
         open={Boolean(rejectTarget)}
         title="Từ chối yêu cầu"
         onClose={() => { setRejectTarget(null); setRejectReason(""); }}
+        initialFocusRef={rejectReasonRef}
         footer={<><Button variant="secondary" onClick={() => { setRejectTarget(null); setRejectReason(""); }}>Hủy</Button><Button variant="danger" disabled={!rejectReason.trim()} onClick={confirmReject}><XCircleIcon /> Xác nhận từ chối</Button></>}
       >
         <p>Ghi rõ lý do để người gửi và nhật ký kiểm tra có đủ ngữ cảnh.</p>
-        <label className="form-wide"><span>Lý do từ chối <b aria-hidden="true">*</b></span><textarea value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} rows={4} maxLength={500} placeholder="Ví dụ: Thiếu tài liệu xác nhận ca làm việc." autoFocus required aria-required="true" aria-label="Lý do từ chối" /></label>
+        <label className="form-wide"><span>Lý do từ chối <b aria-hidden="true">*</b></span><textarea ref={rejectReasonRef} value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} rows={4} maxLength={500} placeholder="Ví dụ: Thiếu tài liệu xác nhận ca làm việc." required aria-required="true" aria-label="Lý do từ chối" /></label>
       </Modal>
     </div>
   </AuthorizationProvider>;

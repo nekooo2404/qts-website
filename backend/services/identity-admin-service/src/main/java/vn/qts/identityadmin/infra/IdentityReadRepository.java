@@ -263,6 +263,26 @@ public class IdentityReadRepository {
         return context.permissions().containsAll(jsonSet(rows.getFirst().get("required_permissions")));
     }
 
+    public boolean canAccessApplicationClient(IdentityContext context, String clientId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                """
+                select a.required_permissions
+                  from identity_applicationassignment aa
+                  join identity_application a on a.id = aa.application_id
+                 where aa.membership_id = ?
+                   and aa.is_enabled = true
+                   and a.client_id = ?
+                   and a.is_active = true
+                """,
+                context.membershipId(),
+                clientId
+        );
+        if (rows.isEmpty()) {
+            return false;
+        }
+        return context.permissions().containsAll(jsonSet(rows.getFirst().get("required_permissions")));
+    }
+
     public List<Map<String, Object>> sessions(IdentityContext context) {
         return jdbc.queryForList(
                 """

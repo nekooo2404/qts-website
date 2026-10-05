@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
   // ============================================
   images: {
     formats: ["image/avif", "image/webp"],
+    qualities: [68, 75],
   },
 
   productionBrowserSourceMaps: false,
@@ -85,6 +86,13 @@ const nextConfig: NextConfig = {
         headers: [
           ...securityHeaders,
           { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/images/:path*",
+        headers: [
+          ...securityHeaders,
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" },
         ],
       },
     ];

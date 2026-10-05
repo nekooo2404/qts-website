@@ -24,7 +24,8 @@ const gallery = [
 ];
 
 export function CompanyHeroVisual() {
-  return <motion.div className="company-hero-visual" initial={{ opacity: 0, y: 24, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .65, ease: "easeOut" }}>
+  const reduceMotion = useReducedMotion();
+  return <motion.div className="company-hero-visual" initial={reduceMotion ? false : { opacity: 0, y: 12, scale: .99 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduceMotion ? 0 : .4, ease: [0.22, 1, 0.36, 1] }}>
     <Image src="/images/company/company-hero-open-office.jpg" alt="Không gian làm việc mở với các nhóm cùng sử dụng hệ thống doanh nghiệp" fill priority sizes="(max-width: 950px) 100vw, 53vw" />
     <div className="company-hero-float"><b>Mạng lưới triển khai QTS</b><span>Sản phẩm · Kỹ thuật · Dữ liệu · Đám mây</span></div>
   </motion.div>;

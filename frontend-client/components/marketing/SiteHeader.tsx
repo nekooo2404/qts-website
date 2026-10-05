@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { featuredResource } from "@/components/marketing/resources/catalog";
 import { megaMenu } from "@/lib/motion";
@@ -28,20 +28,21 @@ const researchLinks = [
   { label: "Theo dõi chủ đề", href: "/resources/product-updates", copy: "Tổng hợp ngắn gọn theo chủ đề, không hàm ý mốc phát hành cụ thể." },
 ];
 
-export function QtsMark({ className = "" }: { className?: string }) {
+export function QtsMark({ className = "", priority = false }: { className?: string; priority?: boolean }) {
   return (
     <span className={`qts-mark ${className}`.trim()} aria-hidden="true">
-      <Image src="/images/brand/qts-logo.webp" alt="" width={512} height={512} sizes="48px" priority />
+      <Image src="/images/brand/qts-logo-96.webp" alt="" width={96} height={96} sizes="48px" {...(priority ? { preload: true } : { loading: "lazy" as const })} />
     </span>
   );
 }
 
-export function Brand({ dark = false }: { dark?: boolean }) {
-  return <Link href="/" className={`brand ${dark ? "brand-dark" : ""}`} aria-label="Trang chủ QTS"><QtsMark />QTS</Link>;
+export function Brand({ dark = false, priority = false }: { dark?: boolean; priority?: boolean }) {
+  return <Link href="/" className={`brand ${dark ? "brand-dark" : ""}`} aria-label="Trang chủ QTS"><QtsMark priority={priority} />QTS</Link>;
 }
 
 export default function SiteHeader() {
   const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -189,7 +190,7 @@ export default function SiteHeader() {
 
   return <header className="nav">
     <div className="container nav-inner">
-      <Brand />
+      <Brand priority />
       <nav className="nav-links" aria-label="Điều hướng chính">
         {navigation.slice(0, 3).map((item) => <Link key={item.href} href={item.href} className={`nav-link ${pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""}`}>{item.label}</Link>)}
         <div className="nav-mega-wrap" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setResourcesOpen(false); }} ref={resourcesRef} onMouseEnter={openMega} onMouseLeave={closeMega} onFocus={cancelMegaTimers} onKeyDown={event => {
@@ -210,7 +211,7 @@ export default function SiteHeader() {
                 role="region"
                 aria-label="Trình đơn tài nguyên"
                 variants={megaMenu}
-                initial="hidden"
+                initial={reduceMotion ? false : "hidden"}
                 animate="visible"
                 exit="exit"
               >
@@ -254,10 +255,10 @@ export default function SiteHeader() {
           role="dialog" aria-modal="true" id="mobile-navigation"
           onClick={event => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}
           onKeyDownCapture={trapMobileFocus}
-          initial={{ x: "100%" }}
+          initial={reduceMotion ? false : { x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
-          transition={{ type: "spring", stiffness: 300, damping: 32 }}
+          transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 32 }}
           aria-label="Điều hướng trên thiết bị di động"
         >
           <span className="focus-guard" tabIndex={0} aria-label="Quay lại cuối trình đơn" onFocus={focusLastMobileControl} />
@@ -290,13 +291,13 @@ export default function SiteHeader() {
           </div>
           <nav className="mobile-overlay-nav">
             {navigation.slice(0, 3).map((item, i) => (
-              <motion.div key={item.href} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.06 }}>
+              <motion.div key={item.href} initial={reduceMotion ? false : { opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.08 + i * 0.05, duration: 0.25 }}>
                 <Link href={item.href} className="mobile-overlay-link">{item.label}</Link>
               </motion.div>
             ))}
             <MobileAccordion links={allMobileLinks} />
             {navigation.slice(3).map((item, i) => (
-              <motion.div key={item.href} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.06 }}>
+              <motion.div key={item.href} initial={reduceMotion ? false : { opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.2 + i * 0.05, duration: 0.25 }}>
                 <Link href={item.href} className="mobile-overlay-link">{item.label}</Link>
               </motion.div>
             ))}
@@ -333,6 +334,7 @@ export default function SiteHeader() {
 
 function MobileAccordion({ links }: { links: { label: string; href: string }[] }) {
   const [expanded, setExpanded] = useState(false);
+  const reduceMotion = useReducedMotion();
   return (
     <div className="mobile-accordion">
       <button type="button" className={`mobile-accordion-trigger ${expanded ? "open" : ""}`} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
@@ -340,7 +342,7 @@ function MobileAccordion({ links }: { links: { label: string; href: string }[] }
       </button>
       <AnimatePresence initial={false}>
         {expanded && (
-          <motion.div className="mobile-accordion-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}>
+          <motion.div className="mobile-accordion-body" initial={reduceMotion ? false : { height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={reduceMotion ? { height: 0 } : { height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.25 }}>
             <Link href="/resources">Tất cả tài nguyên</Link>
             {links.map((item) => <Link key={item.label} href={item.href}>{item.label}</Link>)}
           </motion.div>

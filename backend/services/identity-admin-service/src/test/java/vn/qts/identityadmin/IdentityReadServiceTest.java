@@ -71,6 +71,18 @@ class IdentityReadServiceTest {
                 .isEqualTo(403);
     }
 
+    @Test
+    void userinfoRejectsTokenWhenClientAssignmentWasRevoked() {
+        IdentityContext context = context();
+        when(repository.context(oryId, tenantId, sessionId)).thenReturn(context);
+        when(repository.canAccessApplicationClient(context, "qts-hrm")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.userinfo(jwt("openid email profile", List.of(), "qts-hrm")))
+                .isInstanceOf(IdentityAdminException.class)
+                .extracting("status")
+                .isEqualTo(403);
+    }
+
     private IdentityContext context() {
         return new IdentityContext(
                 UUID.randomUUID(),
@@ -94,6 +106,10 @@ class IdentityReadServiceTest {
     }
 
     private Jwt jwt(String scope, List<String> permissions) {
+        return jwt(scope, permissions, "");
+    }
+
+    private Jwt jwt(String scope, List<String> permissions, String clientId) {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .claim("sub", oryId.toString())
@@ -101,6 +117,7 @@ class IdentityReadServiceTest {
                 .claim("qts_sid", sessionId.toString())
                 .claim("scope", scope)
                 .claim("permissions", permissions)
+                .claim("qts_client", clientId)
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(600))
                 .build();

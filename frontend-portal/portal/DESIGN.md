@@ -16,10 +16,10 @@
 
 | Role | CSS token / value | Shipped use |
 |---|---|---|
-| Product action | `--qts-blue: #2563eb` | primary buttons, active navigation, icons, focus outlines, access toggles, logo mark |
-| Product hover | `--qts-blue-hover: #1d4ed8` | active navigation text, hovered primary actions and command items |
-| Product subtle | `--qts-blue-subtle: #eff6ff` | selected navigation, KPI emphasis, avatars, module icons, access states |
-| Product ink | `--qts-blue-ink: #1e40af` | emphasized KPI and identity values |
+| Product action | `--qts-blue: #007AFF` | primary buttons, active navigation, icons, focus outlines, access toggles, logo mark |
+| Product hover | `--qts-blue-hover: #0051D5` | active navigation text, hovered primary actions and command items |
+| Product subtle | `--qts-blue-subtle: #EAF2FF` | selected navigation, KPI emphasis, avatars, module icons, access states |
+| Product ink | `--qts-blue-ink: #0051D5` | emphasized KPI and identity values |
 | Success | `--success: #16a34a`; `--success-subtle: #f0fdf4` | positive access summary and available-state treatments |
 | Warning | `--warning: #f59e0b`; `--warning-subtle: #fffbeb` | warning state tokens and semantic notice treatments |
 | Danger | `--danger: #dc2626`; `--danger-subtle: #fef2f2` | sign-out/error treatments and login errors |
@@ -33,7 +33,7 @@ QTS Blue is the sole product-brand accent. Green, amber, and red communicate sta
 
 ### Typography
 
-- **Family:** `Inter, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Arial, sans-serif`; Inter weights 400/500/600/700 are loaded by `styles.css` through Google Fonts.
+- **Family:** `ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Arial, sans-serif`; the launcher and portal use the iOS-light QTS system stack without requiring a remote font.
 - **Numerals:** `font-variant-numeric: tabular-nums` is global.
 - **Page title:** `24px/32px`, `-.035em`; mobile `22px/28px`.
 - **Login title:** `25px`, mobile `23px`; access-denied title `22px`.
@@ -93,7 +93,7 @@ The artifact does not expose spacing custom properties. Reused layout values are
 - After a successful session, the portal lands on a two-product chooser before the shell. It can only present the Portal and HRM entries returned by `/api/launcher`; the current-product card opens the portal shell and the HRM card starts that SPA's same-tab PKCE handoff. The API filters the source list through `can_access_application`; the presentation filter never grants access — UI visibility is not authorization.
 - The settings access matrix is presentation and entitlement UI only. It communicates the entitlements received from QTS Identity; it does not grant, revoke, persist, or enforce authorization.
 - QTS Identity and the API remain authoritative for authentication, module access, management rights, data access, and protected operations. UI visibility is not authorization.
-- Current controls, tables, cards, empty states, labels, and navigation do **not** assert persistence, approvals, exports, automation, or live AI analysis. The dashboard export icon, add/deploy buttons, date filter, Kanban mode, analysis ranges, and QTS Intelligence copy are presentation affordances in this shipped artifact until backed by real domain APIs and audited behavior.
+- Current controls, tables, cards, empty states, labels, and navigation do **not** assert persistence, approvals, exports, automation, or live AI analysis. The dashboard export icon, add/deploy buttons, date filter, Kanban mode, analysis ranges, and analysis-signal copy are presentation affordances in this shipped artifact until backed by real domain APIs and audited behavior.
 
 ## Components and states
 
@@ -126,7 +126,7 @@ The artifact does not expose spacing custom properties. Reused layout values are
 - At `580px` and below, the shell becomes a single column with `10px` base outer padding plus device safe-area insets; the sidebar is hidden, topbar controls compact, the main content uses `17px 4px` padding plus safe-area bottom padding, KPIs become two columns with only the first two shown, and table columns are selectively hidden. Waffle and profile menus become fixed mobile overlays with notch and gesture-area clearance.
 - Login and access-denied states remain centered and bounded on mobile; access matrices preserve a `460px` minimum width and scroll horizontally rather than destroying column meaning.
 - Focusable buttons, inputs, links, and tab-indexed elements receive a visible `2px` QTS-blue outline with `2px` offset. Icon-only controls have accessible labels; menus expose `role`, `aria-label`, `aria-haspopup`, `aria-expanded`, or `role="menuitem"` as appropriate. Escape routes exist for command, waffle, and profile overlays.
-- `html` is `lang="vi"`; body and controls inherit the Inter stack; disabled controls communicate disabled state through cursor and styling; reduced-motion support is explicit.
+- `html` is `lang="vi"`; body and controls inherit the QTS system stack; disabled controls communicate disabled state through cursor and styling; reduced-motion support is explicit.
 
 ## Not canonized
 

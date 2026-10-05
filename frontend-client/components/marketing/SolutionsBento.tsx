@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRightIcon, CloudIcon, CommandLineIcon, GlobeAltIcon, SparklesIcon, Squares2X2Icon } from "@heroicons/react/24/outline";
@@ -33,9 +31,17 @@ export default function SolutionsBento() {
           const SolutionIcon = iconMap[solution.icon];
           return (
             <article className={`solution ${classMap[solution.slug]}`} key={solution.slug}>
-              <Image className="solution-image" src={solution.cover} alt={solution.alt} fill sizes="(max-width: 768px) calc(100vw - clamp(20px, 4vw, 48px)), (max-width: 1024px) 50vw, 33vw" />
+              <Image
+                className="solution-image"
+                src={solution.cover}
+                alt={solution.alt}
+                fill
+                loading="lazy"
+                quality={68}
+                sizes="(max-width: 768px) calc(100vw - clamp(20px, 4vw, 48px)), (max-width: 1024px) 50vw, 33vw"
+              />
               <span className="solution-shade" aria-hidden="true" />
-              <i className="solution-icon">
+              <i className="solution-icon" aria-hidden="true">
                 <SolutionIcon />
               </i>
               <h3>

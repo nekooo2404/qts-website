@@ -8,7 +8,15 @@ import type { Resource } from "./catalog";
 export function ResourceCover({ resource, priority = false }: { resource: Resource; priority?: boolean }) {
   return (
     <div className="resource-cover">
-      <Image src={resource.image} alt={resource.imageAlt} fill priority={priority} sizes="(max-width: 700px) 100vw, (max-width: 950px) 50vw, 33vw" />
+      <Image
+        src={resource.image}
+        alt={resource.imageAlt}
+        fill
+        priority={priority}
+        loading={priority ? undefined : "lazy"}
+        quality={priority ? 78 : 70}
+        sizes="(max-width: 700px) 100vw, (max-width: 950px) 50vw, 33vw"
+      />
       <span className="resource-cover-glow" aria-hidden="true" />
     </div>
   );

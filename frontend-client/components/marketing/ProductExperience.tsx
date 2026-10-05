@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { CheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis } from "recharts";
 
@@ -37,6 +37,7 @@ function ExperiencePanel({ tab }: { tab: number }) {
 export default function ProductExperience() {
   const [active, setActive] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const reduceMotion = useReducedMotion();
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     let next: number | null = null;
@@ -57,7 +58,7 @@ export default function ProductExperience() {
     </div>
     <p className="experience-disclaimer experience-shell-note">Các tỷ lệ và đường xu hướng trong khối này là dữ liệu mô phỏng để minh họa cách đọc thông tin, không phải KPI hoặc kết quả khách hàng.</p>
     <AnimatePresence mode="wait">
-      <motion.div key={active} role="tabpanel" id={`experience-panel-${active}`} aria-labelledby={`experience-tab-${active}`} className="experience-stage" initial={{ opacity: 0, y: 12, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: .99 }} transition={{ duration: .25 }}><ExperiencePanel tab={active} /></motion.div>
+      <motion.div key={active} role="tabpanel" id={`experience-panel-${active}`} aria-labelledby={`experience-tab-${active}`} className="experience-stage" initial={reduceMotion ? false : { opacity: 0, y: 8, scale: .99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: .99 }} transition={{ duration: reduceMotion ? 0 : .25 }}><ExperiencePanel tab={active} /></motion.div>
     </AnimatePresence>
   </div>;
 }

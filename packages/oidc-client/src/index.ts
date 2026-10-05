@@ -32,6 +32,14 @@ type AuthorizationTransaction = {
   verifier: string;
   nonce: string;
   createdAt: number;
+  prompt?: AuthorizationPrompt;
+};
+
+export type AuthorizationPrompt = "none" | "login";
+
+export type AuthorizationOptions = {
+  prompt?: AuthorizationPrompt;
+  maxAge?: number;
 };
 
 type StoredSession = {
@@ -79,6 +87,13 @@ export class IdentityUnavailableError extends Error {
   constructor(message = "Chưa kết nối được QTS Identity. Vui lòng kiểm tra mạng hoặc thử lại sau.") {
     super(message);
     this.name = "IdentityUnavailableError";
+  }
+}
+
+export class SilentAuthorizationRequiredError extends Error {
+  constructor(message = "Cần đăng nhập tương tác để tiếp tục.") {
+    super(message);
+    this.name = "SilentAuthorizationRequiredError";
   }
 }
 
@@ -486,19 +501,27 @@ export function createOidcClient(config: OidcClientConfig) {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${accessToken}`);
     if (!headers.has("Accept")) headers.set("Accept", "application/json");
-    let response = await identityFetch(`${config.apiIssuer}${path}`, { ...init, headers });
+    const requestUrl = apiRequestUrl(path);
+    let response = await identityFetch(requestUrl, { ...init, headers });
     if (response.status === 401) {
       const current = readSession();
       if (!current) throw new SessionExpiredError();
       if (current.access_token === accessToken) await refreshSession();
       accessToken = await getAccessToken();
       headers.set("Authorization", `Bearer ${accessToken}`);
-      response = await identityFetch(`${config.apiIssuer}${path}`, { ...init, headers });
+      response = await identityFetch(requestUrl, { ...init, headers });
     }
     if (!response.ok) throw new Error(await responseError(response));
     if (response.status === 204) return undefined as T;
     const text = await response.text();
     return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  function apiRequestUrl(path: string) {
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+    return `${config.apiIssuer}${path}`;
   }
 
   async function loadUserInfo<T extends SubjectUserInfo>() {
@@ -532,7 +555,7 @@ export function createOidcClient(config: OidcClientConfig) {
     }
   }
 
-  async function beginAuthorization() {
+  async function beginAuthorization(options: AuthorizationOptions = {}) {
     const state = randomValue(32);
     const nonce = randomValue(32);
     const verifier = randomValue(64);
@@ -543,6 +566,7 @@ export function createOidcClient(config: OidcClientConfig) {
       verifier,
       nonce,
       createdAt: Date.now(),
+      ...(options.prompt ? { prompt: options.prompt } : {}),
     } satisfies AuthorizationTransaction));
 
     const defaultScopes = refreshTokenStorage === "none"
@@ -558,6 +582,10 @@ export function createOidcClient(config: OidcClientConfig) {
       code_challenge: challenge,
       code_challenge_method: "S256",
     });
+    if (options.prompt) parameters.set("prompt", options.prompt);
+    if (typeof options.maxAge === "number" && Number.isFinite(options.maxAge) && options.maxAge >= 0) {
+      parameters.set("max_age", String(Math.floor(options.maxAge)));
+    }
     window.location.assign(`${authorization_endpoint}?${parameters.toString()}`);
   }
 
@@ -573,7 +601,11 @@ export function createOidcClient(config: OidcClientConfig) {
     const description = parameters.get("error_description");
     if (!state) throw new Error("Phản hồi định danh thiếu trường state.");
     if (error) {
-      if (readTransaction(state)) sessionStorage.removeItem(transactionKey(state));
+      const transaction = readTransaction(state);
+      if (transaction) sessionStorage.removeItem(transactionKey(state));
+      if (transaction?.prompt === "none" && (error === "login_required" || error === "interaction_required" || error === "consent_required")) {
+        throw new SilentAuthorizationRequiredError();
+      }
       if (callbackEnrollmentError(error, description)) {
         throw new EnrollmentRequiredError();
       }

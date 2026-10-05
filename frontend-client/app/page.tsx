@@ -1,4 +1,4 @@
-import { buildMetadata, landingPageJsonLd } from "@/lib/seo";
+import { buildMetadata, landingFaqJsonLd, landingPageJsonLd } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
@@ -21,8 +21,8 @@ import LandingFAQ from "@/components/marketing/LandingFAQ";
 import Reveal from "@/components/marketing/Reveal";
 
 export const metadata = buildMetadata({
-  title: "QTS - Nền tảng vận hành doanh nghiệp, Portal, HRM và Identity",
-  description: "QTS kết nối Portal, HRM, Identity, workflow, tài liệu và báo cáo trong một hệ sinh thái doanh nghiệp bảo mật, có khả năng mở rộng.",
+  title: "QTS - Nền tảng vận hành doanh nghiệp: SSO đăng nhập một lần, Portal, HRM, Identity",
+  description: "QTS - Một lần đăng nhập (SSO) cho Portal, HRM, workflow và báo cáo. Phân quyền RBAC, MFA và audit tập trung trong hệ sinh thái doanh nghiệp bảo mật, dễ mở rộng.",
   path: "/",
   keywords: [
     "QTS",
@@ -30,6 +30,10 @@ export const metadata = buildMetadata({
     "phần mềm doanh nghiệp",
     "HRM",
     "SSO",
+    "đăng nhập một lần",
+    "SSO doanh nghiệp",
+    "MFA",
+    "RBAC",
     "Identity",
     "workflow",
     "portal doanh nghiệp",
@@ -73,8 +77,8 @@ const outcomes: Array<{ title: string; copy: string; icon: IconComponent }> = [
     icon: SparklesIcon,
   },
   {
-    title: "An toàn khi mở rộng",
-    copy: "Identity, vai trò và phạm vi truy cập được xem là nền móng, không phải phần bổ sung về sau.",
+    title: "Đăng nhập một lần, phân quyền theo vai trò",
+    copy: "Nhân sự đăng nhập một lần để vào Portal, HRM, workflow và báo cáo — quyền và phạm vi dữ liệu theo đúng vai trò, không chia sẻ tài khoản.",
     icon: ShieldCheckIcon,
   },
 ];
@@ -82,7 +86,7 @@ const outcomes: Array<{ title: string; copy: string; icon: IconComponent }> = [
 const readiness: Array<{ title: string; copy: string; icon: IconComponent }> = [
   {
     title: "Bảo mật từ kiến trúc",
-    copy: "Định danh, phiên truy cập và phân quyền được thiết kế như một lớp nền dùng chung cho hệ sinh thái.",
+    copy: "SSO, phiên truy cập và phân quyền được thiết kế như một lớp nền dùng chung — thêm ứng dụng mới không cần cấp lại tài khoản.",
     icon: LockClosedIcon,
   },
   {
@@ -109,7 +113,7 @@ const processSteps = [
   },
   {
     title: "Thiết kế nền tảng",
-    copy: "Định nghĩa luồng người dùng, mô hình quyền, điểm tích hợp và trải nghiệm sản phẩm.",
+    copy: "Định nghĩa luồng người dùng, mô hình quyền, SSO/MFA, điểm tích hợp và trải nghiệm sản phẩm.",
   },
   {
     title: "Triển khai theo lát cắt",
@@ -125,7 +129,7 @@ export default function Page() {
   return <MarketingShell>
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(landingPageJsonLd()).replace(/</g, "\\u003c") }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify([landingPageJsonLd(), landingFaqJsonLd()]).replace(/</g, "\\u003c") }}
     />
     <HomeExperience />
     <section className="section landing-problems" aria-labelledby="landing-problems-title">

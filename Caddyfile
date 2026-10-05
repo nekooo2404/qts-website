@@ -32,12 +32,15 @@ qtsgroup.vn {
 		redir https://sso.qtsgroup.vn{uri} 308
 	}
 	handle {
-		reverse_proxy localhost:3000
+		reverse_proxy localhost:3000 {
+			header_down -X-Frame-Options
+			header_down X-Frame-Options "DENY"
+		}
 	}
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "SAMEORIGIN"
+		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 		Permissions-Policy "geolocation=(), microphone=(), camera=(), interest-cohort=()"

@@ -12,7 +12,7 @@ import { platformProofPoints } from "@/lib/marketing-proof-points";
 
 export const metadata = buildMetadata({
   title: "Nền tảng doanh nghiệp - QTS",
-  description: "Khám phá nền tảng QTS kết nối CRM, ERP, AI, phân tích, điều phối quy trình và hệ thống đám mây.",
+  description: "Khám phá nền tảng QTS: SSO đăng nhập một lần (MFA, RBAC, audit), cùng CRM, ERP, AI, phân tích và đám mây.",
   path: "/platform",
 });
 
@@ -49,6 +49,11 @@ export default function Page() {
       <div className="container">
         <Reveal><div className="section-heading"><span className="eyebrow">Trải nghiệm sản phẩm</span><h2>Rõ ràng ở tốc độ vận hành doanh nghiệp.</h2><p>Mỗi tín hiệu, tác vụ và quyết định nằm trong giao diện giúp hoạt động phức tạp trở nên dễ hiểu.</p></div></Reveal>
         <Reveal delay={0.1}><ProductExperienceLazy /></Reveal>
+      </div>
+    </section>
+    <section id="identity" className="section" style={{ background: "#fff" }}>
+      <div className="container">
+        <Reveal><div className="section-heading"><span className="eyebrow">Identity & SSO</span><h2>Đăng nhập một lần cho mọi ứng dụng.</h2><p>Portal, HRM, workflow và báo cáo dùng chung một phiên SSO (OIDC/OAuth2 qua Ory Kratos & Hydra) — phân quyền theo vai trò, hỗ trợ MFA và lưu vết tập trung. Thêm ứng dụng mới không cần cấp lại tài khoản.</p></div></Reveal>
       </div>
     </section>
     <section className="section" style={{ background: "var(--paper)" }}>

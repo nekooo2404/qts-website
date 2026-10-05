@@ -29,6 +29,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableMethodSecurity
@@ -36,6 +39,7 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityProperties properties) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource(properties)))
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -52,6 +56,21 @@ class SecurityConfig {
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         }
         return http.build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(SecurityProperties properties) {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(properties.corsAllowedOrigins());
+        configuration.setAllowedMethods(List.of("GET", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Cache-Control", "Pragma"));
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean

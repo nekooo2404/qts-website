@@ -236,8 +236,8 @@ export function StatTile({ label, value, detail, tone = "blue" }: { label: strin
   </article>;
 }
 
-export function EmptyState({ title = "Chưa có dữ liệu", detail = "Không có bản ghi thuộc phạm vi dữ liệu hiện tại.", action, icon }: { title?: string; detail?: string; action?: ReactNode; icon?: ReactNode }) {
-  return <div className="empty-state" role="status">
+export function EmptyState({ title = "Chưa có dữ liệu", detail = "Không có bản ghi thuộc phạm vi dữ liệu hiện tại.", action, icon, animate = false }: { title?: string; detail?: string; action?: ReactNode; icon?: ReactNode; animate?: boolean }) {
+  return <div className={cx("empty-state", animate && "animate__animated animate__fadeIn animate__faster")} role="status">
     <span className="empty-state-icon" aria-hidden="true">{icon ?? <CircleStackIcon />}</span>
     <strong>{title}</strong>
     <span>{detail}</span>
@@ -355,17 +355,19 @@ export function Modal({
   children,
   onClose,
   footer,
+  initialFocusRef,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
   footer?: ReactNode;
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const closeButton = useRef<HTMLButtonElement>(null);
   const modal = useRef<HTMLElement>(null);
   const [rendered, closing] = usePresence(open, "--modal-close-dur", 150);
-  useDialogFocus({ open, rendered, closing, dialog: modal, initialFocus: closeButton, onClose });
+  useDialogFocus({ open, rendered, closing, dialog: modal, initialFocus: initialFocusRef ?? closeButton, onClose });
   if (!rendered) return null;
   return <div className={closing ? "modal-backdrop is-closing" : "modal-backdrop"} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={modal} tabIndex={-1} className={closing ? "modal is-closing" : "modal"} role="dialog" aria-modal="true" aria-label={title}>

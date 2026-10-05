@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_IDENTITY_ISSUER?: string;
   readonly VITE_API_ISSUER?: string;
+  readonly VITE_HRM_API_ISSUER?: string;
   readonly VITE_IDENTITY_WEB_ORIGIN?: string;
   readonly VITE_HRM_OIDC_CLIENT_ID?: string;
   readonly VITE_HRM_OIDC_REDIRECT_URI?: string;

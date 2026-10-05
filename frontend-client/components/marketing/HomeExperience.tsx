@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { ArrowRightIcon, CheckIcon, CircleStackIcon, FingerPrintIcon, LockClosedIcon, QueueListIcon, ShieldCheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, CheckIcon, CircleStackIcon, LockClosedIcon, QueueListIcon, ShieldCheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 function ProductScenario() {
   return (
     <div className="hero-scenario" aria-label="Luồng minh hoạ về vận hành kết nối">
       <div className="hero-scenario-heading">
         <span>Bản minh họa giao diện</span>
-        <i><SparklesIcon /></i>
+        <i><SparklesIcon aria-hidden="true" /></i>
       </div>
       <strong>Portal, Identity và HRM cùng một màn hình điều phối.</strong>
       <p>Minh họa cách người dùng vào đúng ứng dụng, đúng quyền và đúng luồng cần xử lý.</p>
       <ul>
-        <li><CheckIcon />Định danh và phiên truy cập</li>
-        <li><CheckIcon />Việc cần duyệt theo vai trò</li>
-        <li><CheckIcon />Tín hiệu vận hành theo thời gian</li>
+        <li><CheckIcon aria-hidden="true" />Định danh và phiên truy cập</li>
+        <li><CheckIcon aria-hidden="true" />Việc cần duyệt theo vai trò</li>
+        <li><CheckIcon aria-hidden="true" />Tín hiệu vận hành theo thời gian</li>
       </ul>
     </div>
   );
@@ -21,51 +21,30 @@ function ProductScenario() {
 
 function HeroWorkspace() {
   return (
-    <figure className="hero-os" aria-label="Mô phỏng bề mặt sản phẩm QTS" aria-describedby="hero-visual-caption">
-      <div className="hero-mac-window" aria-hidden="true">
-        <div className="hero-window-bar"><b>QTS Workspace</b><small>Bản minh họa</small></div>
-        <div className="hero-window-body">
-          <div className="hero-window-side">
-            <span className="active" />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="hero-window-main">
-            <div className="hero-window-head"><b>Vận hành hôm nay</b><small>Bối cảnh minh họa</small></div>
-            <div className="hero-metrics">
-              <div><strong>Vai trò</strong><span>phân quyền rõ</span></div>
-              <div><strong>Quy trình</strong><span>theo dõi được</span></div>
-              <div><strong>Phiên</strong><span>được bảo vệ</span></div>
-            </div>
-            <div className="hero-flow-list">
-              <span><i />Onboarding nhân sự</span>
-              <span><i />Yêu cầu mua sắm</span>
-              <span><i />Báo cáo vận hành</span>
-            </div>
-            <div className="hero-workbench-table" aria-hidden="true">
-              <div><span>Ứng dụng</span><b>Trạng thái</b><em>Phạm vi</em></div>
-              <div><span>Identity</span><b>Phiên hợp lệ</b><em>SSO / MFA</em></div>
-              <div><span>HRM</span><b>Chờ phê duyệt</b><em>Theo vai trò</em></div>
-              <div><span>Portal</span><b>Sẵn sàng mở</b><em>Ứng dụng được cấp</em></div>
-            </div>
-          </div>
+    <figure className="hero-os hero-system" aria-label="Sơ đồ kiểm soát nền tảng QTS" aria-describedby="hero-visual-caption">
+      <div className="hero-system-map" aria-hidden="true">
+        <div className="hero-system-head"><b>QTS operating model</b><small>Control map</small></div>
+        <div className="hero-system-core">
+          <span>Identity</span>
+          <strong>Phiên, quyền và phạm vi dữ liệu</strong>
+        </div>
+        <div className="hero-system-nodes">
+          <div><b>Portal</b><span>Ứng dụng được cấp</span></div>
+          <div><b>HRM</b><span>Hồ sơ trong phạm vi</span></div>
+          <div><b>Workflow</b><span>Phê duyệt có vết</span></div>
+          <div><b>Reporting</b><span>Báo cáo theo quyền</span></div>
         </div>
       </div>
-      <div className="hero-aux-stack">
-        <div className="hero-inspector" aria-hidden="true">
-          <div className="hero-inspector-title"><small>Bản minh họa</small><b>Phiên truy cập</b></div>
-          <div className="hero-inspector-badge"><FingerPrintIcon /><span>Operations Lead</span></div>
-          <dl>
-            <div><dt>Vai trò</dt><dd>Phân quyền theo vai trò</dd></div>
-            <div><dt>Phiên</dt><dd>Phiên truy cập được bảo vệ</dd></div>
-            <div><dt>Ứng dụng</dt><dd>Portal, HRM, Workflow</dd></div>
-          </dl>
-        </div>
-        <ProductScenario />
+      <div className="hero-proof-ledger" aria-hidden="true">
+        <div><span>Control</span><b>Evidence</b></div>
+        <div><span>SSO session</span><b>OIDC + PKCE</b></div>
+        <div><span>Role boundary</span><b>RBAC / Data scope</b></div>
+        <div><span>Audit trail</span><b>Action log</b></div>
+        <div><span>Release gate</span><b>UAT / OAT checklist</b></div>
       </div>
+      <ProductScenario />
       <figcaption id="hero-visual-caption" className="hero-visual-caption">
-        Bản minh họa giao diện, không phải ảnh chụp sản phẩm hay dữ liệu khách hàng.
+        Sơ đồ minh họa kiến trúc kiểm soát, không phải ảnh chụp sản phẩm hay dữ liệu khách hàng.
       </figcaption>
     </figure>
   );
@@ -75,8 +54,8 @@ const trustProofs = [
   {
     tag: "Security",
     value: "Bảo mật là lớp nền",
-    label: "Định danh, phiên truy cập, vai trò và phạm vi dữ liệu được thiết kế trước khi mở rộng thêm ứng dụng.",
-    scope: "Identity · RBAC · Audit",
+    label: "Một tài khoản cho mọi ứng dụng, đăng nhập một lần, xác thực đa yếu tố và lưu vết đầy đủ.",
+    scope: "SSO · MFA · RBAC · Audit",
   },
   {
     tag: "Integration",
@@ -98,6 +77,13 @@ const trustProofs = [
   },
 ];
 
+const proofArtifacts = [
+  "OIDC/PKCE và danh sách ứng dụng được cấp",
+  "RBAC, Data Scope, Field-Level Security",
+  "Audit log cho thao tác nhạy cảm",
+  "UAT/OAT, backup/restore, handover checklist",
+];
+
 export function TrustStrip() {
   return (
     <section className="trust" aria-labelledby="trust-proof-title" aria-describedby="trust-proof-copy">
@@ -116,6 +102,10 @@ export function TrustStrip() {
               <em>{proof.scope}</em>
             </article>
           ))}
+        </div>
+        <div className="trust-artifacts" aria-label="Bằng chứng kỹ thuật cần kiểm tra khi triển khai QTS">
+          <span>Artifact kiểm chứng</span>
+          {proofArtifacts.map((item) => <b key={item}>{item}</b>)}
         </div>
         <div className="logo-row" aria-label="Phạm vi nền tảng QTS">
           <span>Phạm vi nền tảng</span>
@@ -136,20 +126,21 @@ export default function HomeExperience() {
       <section className="hero" aria-labelledby="landing-hero-title" aria-describedby="landing-hero-copy">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <span className="hero-kicker"><ShieldCheckIcon width={15} /> Nền tảng vận hành doanh nghiệp</span>
-            <h1 id="landing-hero-title" className="display">Kết nối Portal, HRM, Identity và quy trình trong một hệ sinh thái thống nhất.</h1>
-            <p id="landing-hero-copy">QTS giúp doanh nghiệp gom điểm truy cập, phân quyền, hồ sơ nhân sự, phê duyệt, tài liệu và báo cáo vào cùng một trải nghiệm bảo mật, dễ mở rộng.</p>
+            <span className="hero-kicker"><ShieldCheckIcon width={15} aria-hidden="true" /> Nền tảng vận hành doanh nghiệp</span>
+            <h1 id="landing-hero-title" className="display">QTS - nền tảng vận hành doanh nghiệp.</h1>
+            <p id="landing-hero-copy">Kết nối Portal, HRM, Identity và quy trình nội bộ trong một hệ sinh thái thống nhất: đăng nhập một lần, phân quyền theo vai trò, phiên truy cập và nhật ký được kiểm soát tập trung.</p>
             <div className="hero-actions">
-              <Link href="/contact" className="btn btn-primary">Yêu cầu tư vấn <ArrowRightIcon width={15} /></Link>
+              <Link href="/contact" className="btn btn-primary">Yêu cầu tư vấn <ArrowRightIcon width={15} aria-hidden="true" /></Link>
               <Link href="/solutions" className="btn btn-light">Xem giải pháp</Link>
             </div>
-            <div className="hero-ref-pills" aria-label="Bề mặt vận hành QTS" role="list">
-              <span role="listitem"><LockClosedIcon width={14} /> Identity</span>
-              <span role="listitem"><CircleStackIcon width={14} /> Portal</span>
-              <span role="listitem"><CircleStackIcon width={14} /> HRM</span>
-              <span role="listitem"><QueueListIcon width={14} /> Workflow</span>
-              <span role="listitem"><CircleStackIcon width={14} /> Reporting</span>
-            </div>
+            <Link href="/platform#identity" className="hero-deep-link" prefetch={false}>Xem SSO & phân quyền hoạt động thế nào →</Link>
+            <ul className="hero-ref-pills" aria-label="Bề mặt vận hành QTS">
+              <li><LockClosedIcon width={14} aria-hidden="true" /> Identity</li>
+              <li><CircleStackIcon width={14} aria-hidden="true" /> Portal</li>
+              <li><CircleStackIcon width={14} aria-hidden="true" /> HRM</li>
+              <li><QueueListIcon width={14} aria-hidden="true" /> Workflow</li>
+              <li><CircleStackIcon width={14} aria-hidden="true" /> Reporting</li>
+            </ul>
           </div>
           <div className="hero-os-wrap">
             <HeroWorkspace />

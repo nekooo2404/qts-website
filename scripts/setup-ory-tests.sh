@@ -57,7 +57,8 @@ upsert_env ORY_HYDRA_ISSUER_BROWSER_URL "$HYDRA_ISSUER"
 upsert_env ORY_HYDRA_ADMIN_HOST_URL http://127.0.0.1:4447
 upsert_env QTS_IDENTITY_ISSUER "$HYDRA_ISSUER"
 upsert_env VITE_IDENTITY_ISSUER "$HYDRA_ISSUER"
-upsert_env VITE_API_ISSUER "$HYDRA_ISSUER"
+upsert_env VITE_API_ISSUER http://localhost:18084
+upsert_env VITE_HRM_API_ISSUER http://localhost:18086
 upsert_env ORY_KRATOS_BROWSER_URL http://localhost:3018/kratos
 upsert_env VITE_PORTAL_OIDC_REDIRECT_URI http://localhost:5184/auth/callback
 upsert_env VITE_PORTAL_OIDC_POST_LOGOUT_REDIRECT_URI http://localhost:5184/

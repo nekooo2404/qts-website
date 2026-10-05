@@ -62,6 +62,10 @@ export function organizationJsonLd() {
       "Phần mềm doanh nghiệp",
       "Nền tảng vận hành",
       "Định danh và phân quyền",
+      "Single sign-on",
+      "SSO",
+      "MFA",
+      "RBAC",
       "Tích hợp hệ thống",
       "HRM",
       "Workflow",
@@ -102,7 +106,7 @@ export function landingPageJsonLd() {
     "@type": "WebPage",
     name: "QTS - Nền tảng vận hành doanh nghiệp",
     description:
-      "QTS kết nối Portal, HRM, Identity, workflow, tài liệu và báo cáo trong một hệ sinh thái doanh nghiệp bảo mật, có khả năng mở rộng.",
+      "QTS - Một lần đăng nhập (SSO) cho Portal, HRM, workflow và báo cáo. Phân quyền RBAC, MFA và audit tập trung trong hệ sinh thái doanh nghiệp bảo mật, dễ mở rộng.",
     url: absoluteUrl("/"),
     inLanguage: "vi-VN",
     isPartOf: {
@@ -115,6 +119,7 @@ export function landingPageJsonLd() {
       { "@type": "Thing", name: "Identity and access management" },
       { "@type": "Thing", name: "Human resources management" },
       { "@type": "Thing", name: "Workflow automation" },
+      { "@type": "Thing", name: "Single sign-on" },
     ],
     mainEntity: {
       "@type": "Service",
@@ -124,9 +129,36 @@ export function landingPageJsonLd() {
         name: COMPANY.fullName,
         url: SITE_URL,
       },
-      serviceType: "Enterprise software, identity, HRM, workflow and reporting platform",
+      serviceType: "Single sign-on, identity and access management, HRM, workflow and reporting platform",
       areaServed: "VN",
     },
+  };
+}
+
+
+export function landingFaqJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: "vi-VN",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "QTS có hỗ trợ đăng nhập một lần (SSO) không?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Có. QTS dùng SSO tập trung cho Portal, HRM, workflow và báo cáo — đăng nhập một lần, phân quyền theo vai trò (RBAC), hỗ trợ MFA và lưu vết truy cập.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "QTS bắt đầu một dự án công nghệ như thế nào?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "QTS bắt đầu bằng việc làm rõ mục tiêu, quy trình hiện có, các hệ thống liên quan và ràng buộc cần ưu tiên trước khi đi sâu vào thiết kế và lộ trình thực hiện.",
+        },
+      },
+    ],
   };
 }
 

@@ -14,6 +14,10 @@ const questions = [
     answer: "Giai đoạn khám phá làm rõ người dùng, luồng công việc, nguồn dữ liệu, điểm tích hợp, yêu cầu kiểm soát và các ưu tiên triển khai. Đây là cơ sở để lựa chọn phương án kỹ thuật và kế hoạch phù hợp.",
   },
   {
+    question: "QTS có hỗ trợ đăng nhập một lần (SSO) không?",
+    answer: "Có. QTS dùng SSO tập trung cho Portal, HRM, workflow và báo cáo — đăng nhập một lần, phân quyền theo vai trò (RBAC), hỗ trợ MFA và lưu vết truy cập. Thêm ứng dụng mới không cần cấp lại tài khoản.",
+  },
+  {
     question: "Làm thế nào để trao đổi với QTS về một nhu cầu cụ thể?",
     answer: "Bạn có thể gửi bối cảnh, mục tiêu và những hệ thống đang sử dụng qua trang liên hệ. QTS sẽ dùng các thông tin đó để chuẩn bị cho cuộc trao đổi ban đầu.",
   },

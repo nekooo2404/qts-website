@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 
-import { createOidcClient, IdentityUnavailableError } from "./index.ts";
+import { createOidcClient, IdentityUnavailableError, SilentAuthorizationRequiredError } from "./index.ts";
 
 const issuer = "https://sso.test/";
 const apiIssuer = "https://api.test";
@@ -247,6 +247,38 @@ test("authorization uses an S256 PKCE transaction and rejects state reuse", asyn
   await assert.rejects(() => harness.makeClient().redeemAuthorizationResponse(`?code=code-1&state=${state}`));
 });
 
+test("silent authorization keeps PKCE state and exposes login-required fallback", async () => {
+  const harness = await createHarness({ seedSession: false });
+
+  await harness.client.beginAuthorization({ prompt: "none" });
+
+  const url = new URL(harness.assigned.at(-1) ?? "");
+  const state = url.searchParams.get("state") ?? "";
+  assert.equal(url.searchParams.get("prompt"), "none");
+  assert.equal(url.searchParams.get("code_challenge_method"), "S256");
+  assert.ok(url.searchParams.get("code_challenge"));
+  assert.ok(url.searchParams.get("nonce"));
+
+  const transaction = JSON.parse(harness.storage.getItem(`${transactionPrefix}${state}`) ?? "{}");
+  assert.equal(transaction.prompt, "none");
+  assert.ok(transaction.verifier);
+  assert.equal(transaction.nonce, url.searchParams.get("nonce"));
+
+  await assert.rejects(
+    () => harness.client.redeemAuthorizationResponse(`?error=login_required&state=${state}`),
+    error => error instanceof SilentAuthorizationRequiredError,
+  );
+  assert.equal(harness.storage.getItem(`${transactionPrefix}${state}`), null);
+
+  await harness.client.beginAuthorization({ prompt: "none" });
+  const consentState = new URL(harness.assigned.at(-1) ?? "").searchParams.get("state") ?? "";
+  await assert.rejects(
+    () => harness.client.redeemAuthorizationResponse(`?error=consent_required&state=${consentState}`),
+    error => error instanceof SilentAuthorizationRequiredError,
+  );
+  assert.equal(harness.storage.getItem(`${transactionPrefix}${consentState}`), null);
+});
+
 test("callback rejects a mismatched nonce without storing a session", async () => {
   const harness = await createHarness({ seedSession: false, tokenNonce: "wrong-nonce" });
   await harness.client.beginAuthorization();
@@ -415,6 +447,16 @@ test("a 401 refreshes once and retries the authorized request", async () => {
   assert.deepEqual(await harness.client.authorizedRequest("/api/retry"), { ok: true });
   assert.equal(harness.count("/oauth2/token", "POST"), 1);
   assert.equal(harness.count("/api/retry", "GET"), 2);
+});
+
+test("authorized requests may target a separate absolute API origin", async () => {
+  const harness = await createHarness();
+
+  assert.deepEqual(await harness.client.authorizedRequest("https://hrm-api.test/api/v1/employees"), { ok: true });
+
+  const record = harness.records.find(item => item.url.origin === "https://hrm-api.test");
+  assert.equal(record?.url.pathname, "/api/v1/employees");
+  assert.equal(record?.authorization, "Bearer access-token-1");
 });
 
 test("only discovery is cacheable; token, userinfo, and API requests remain no-store", async () => {

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Synchronize first-party Ory Hydra clients without depending on any retired backend.
 set -Eeuo pipefail
 

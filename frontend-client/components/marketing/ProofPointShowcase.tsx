@@ -41,7 +41,14 @@ export default function ProofPointShowcase({ eyebrow, title, copy, items, contex
           const sources = item.sourceIds ? getCuratedSources([...item.sourceIds]) : [];
           return <article className="proof-card" key={item.title}>
           <div className="proof-media">
-            <Image src={item.image} alt={item.alt} fill sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw" />
+            <Image
+              src={item.image}
+              alt={item.alt}
+              fill
+              loading="lazy"
+              quality={70}
+              sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
+            />
             <span>{item.label}</span>
           </div>
           <div className="proof-body">

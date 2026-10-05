@@ -1,4 +1,4 @@
-import { authorizedApiRequest } from "./auth/oidc";
+import { authorizedApiRequest, hrmApiIssuer } from "./auth/oidc";
 import {
   COMPANY,
   activateOfficialHrmData,
@@ -176,12 +176,12 @@ function officialPositions(positions: HrmPosition[], employees: Employee[]) {
 }
 
 export async function loadOfficialHrmData() {
-  const employeeEnvelope = await authorizedApiRequest<ApiEnvelope<HrmEmployeeListItem[]>>("/api/v1/employees?pageSize=100", { method: "GET" });
+  const employeeEnvelope = await authorizedApiRequest<ApiEnvelope<HrmEmployeeListItem[]>>(`${hrmApiIssuer}/api/v1/employees?pageSize=100`, { method: "GET" });
   const [companyEnvelope, branchEnvelope, departmentEnvelope, positionEnvelope] = await Promise.all([
-    authorizedApiRequest<ApiEnvelope<HrmCompany[]>>("/api/v1/organizations/companies?pageSize=100", { method: "GET" }).catch(() => ({ data: [] })),
-    authorizedApiRequest<ApiEnvelope<HrmBranch[]>>("/api/v1/organizations/branches?pageSize=100", { method: "GET" }).catch(() => ({ data: [] })),
-    authorizedApiRequest<ApiEnvelope<HrmDepartment[]>>("/api/v1/organizations/departments", { method: "GET" }).catch(() => ({ data: [] })),
-    authorizedApiRequest<ApiEnvelope<HrmPosition[]>>("/api/v1/organizations/positions?pageSize=100", { method: "GET" }).catch(() => ({ data: [] })),
+    authorizedApiRequest<ApiEnvelope<HrmCompany[]>>(`${hrmApiIssuer}/api/v1/organizations/companies?pageSize=100`, { method: "GET" }).catch(() => ({ data: [] })),
+    authorizedApiRequest<ApiEnvelope<HrmBranch[]>>(`${hrmApiIssuer}/api/v1/organizations/branches?pageSize=100`, { method: "GET" }).catch(() => ({ data: [] })),
+    authorizedApiRequest<ApiEnvelope<HrmDepartment[]>>(`${hrmApiIssuer}/api/v1/organizations/departments`, { method: "GET" }).catch(() => ({ data: [] })),
+    authorizedApiRequest<ApiEnvelope<HrmPosition[]>>(`${hrmApiIssuer}/api/v1/organizations/positions?pageSize=100`, { method: "GET" }).catch(() => ({ data: [] })),
   ]);
   const officialEmployees = (employeeEnvelope.data ?? []).map(officialEmployee);
   activateOfficialHrmData({

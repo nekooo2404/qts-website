@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { beginAuthorization, beginLogout, clearPortalSession, EnrollmentRequiredError, hasStoredSession, identityWebOrigin, isAuthorizationCallback, listAdminUsers, listPortalLeads, loadPortalIdentity, redeemAuthorizationResponse, restoreSession, SessionExpiredError } from "./oidc";
+import { beginAuthorization, beginLogout, clearPortalSession, EnrollmentRequiredError, hasStoredSession, identityWebOrigin, isAuthorizationCallback, listAdminUsers, listPortalLeads, loadPortalIdentity, redeemAuthorizationResponse, restoreSession, SessionExpiredError, SilentAuthorizationRequiredError } from "./oidc";
 import type { AdminUser, LauncherApplication, PortalEntitlements, PortalLead, UserInfo } from "./oidc";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AppHeader, type AppChromeApplication, type AppChromeNotification } from "@qts/app-chrome";
@@ -326,7 +326,7 @@ function Sidebar({ page, onPage, person, allowedNav, allowedSecondary, canManage
 function NavigationButton({ item, active, onClick }: { item: { page: Page; icon: Icon; count?: string }; active: boolean; onClick: () => void }) {
   const Icon = item.icon;
   const label = pageLabels[item.page];
-  return <button className={`side-link ${active ? "active" : ""}`} type="button" onClick={onClick} aria-label={label} title={label} data-label={label}><Icon aria-hidden="true"/><span>{label}</span>{item.count && <b className="nav-count">{item.count}</b>}</button>;
+  return <button className={`side-link ${active ? "active" : ""}`} type="button" onClick={onClick} aria-label={label} data-label={label} aria-current={active ? "page" : undefined}><Icon aria-hidden="true"/><span>{label}</span>{item.count && <b className="nav-count">{item.count}</b>}</button>;
 }
 
 const commandFocusableSelector = [
@@ -480,9 +480,9 @@ const addRecordConfigs: Record<AddRecordKind, {
   fields: AddRecordField[];
 }> = {
   "business-account": {
-    title: "Thêm tài khoản doanh nghiệp",
+    title: "Chuẩn bị bản nháp tài khoản doanh nghiệp",
     description: "Ghi nhận thông tin khách hàng hoặc đối tác để chuẩn bị đưa vào quy trình CRM.",
-    submitLabel: "Tạo bản nháp",
+    submitLabel: "Chuẩn bị bản nháp",
     note: "Thông tin sẽ ở dạng bản nháp cho đến khi quy trình CRM được kết nối và phê duyệt.",
     fields: [
       { id: "company", label: "Tên doanh nghiệp", placeholder: "Ví dụ: QTS Global" },
@@ -493,9 +493,9 @@ const addRecordConfigs: Record<AddRecordKind, {
     ],
   },
   "employee-profile": {
-    title: "Thêm hồ sơ nhân sự",
-    description: "Tạo hồ sơ nhân sự ban đầu để chuẩn bị đồng bộ sang hệ thống HRM.",
-    submitLabel: "Tạo bản nháp",
+    title: "Chuẩn bị bản nháp hồ sơ nhân sự",
+    description: "Chuẩn bị thông tin nhân sự ban đầu trước khi đồng bộ sang hệ thống HRM chính thức.",
+    submitLabel: "Chuẩn bị bản nháp",
     note: "Hồ sơ chỉ được ghi chính thức sau khi hoàn tất xác nhận nhân sự và quyền truy cập.",
     fields: [
       { id: "name", label: "Họ và tên", placeholder: "Nhập họ tên nhân sự" },
@@ -506,9 +506,9 @@ const addRecordConfigs: Record<AddRecordKind, {
     ],
   },
   "identity-account": {
-    title: "Thêm tài khoản nhân viên",
-    description: "Tạo yêu cầu cấp quyền truy cập hệ thống cho nhân viên.",
-    submitLabel: "Gửi yêu cầu cấp quyền",
+    title: "Chuẩn bị yêu cầu cấp quyền nhân viên",
+    description: "Chuẩn bị bản nháp yêu cầu cấp quyền để quản trị viên định danh phê duyệt trong hệ thống chính thức.",
+    submitLabel: "Chuẩn bị yêu cầu cấp quyền",
     note: "Tài khoản không lưu mật khẩu. Việc xác thực được quản lý qua Trung tâm Định danh.",
     fields: [
       { id: "name", label: "Họ và tên", placeholder: "Nhập họ tên nhân viên" },
@@ -679,13 +679,14 @@ function PermissionPreview({ role, applications }: { role: IdentityRoleId | ""; 
 
 function IdentityRequestStatusPanel({ status, role }: { status: IdentityRequestStatus; role: IdentityRoleId | "" }) {
   const selectedRole = getIdentityRole(role);
-  if (status === "loading") return <div className="identity-status-panel loading" role="status"><span className="identity-loader" aria-hidden="true"/><div><b>Đang gửi yêu cầu...</b><p>Hệ thống đang kiểm tra thông tin và phạm vi quyền.</p></div></div>;
-  if (status === "pending") return <div className="identity-status-panel success" role="status"><CheckCircleIcon width={18}/><div><b>Yêu cầu đang chờ phê duyệt</b><p>Quản trị viên định danh sẽ xác nhận trước khi quyền truy cập có hiệu lực.</p></div></div>;
-  if (status === "invalid") return <div className="identity-status-panel warning" role="alert"><ExclamationTriangleIcon width={18}/><div><b>Thông tin chưa đầy đủ</b><p>Vui lòng kiểm tra các trường bắt buộc trước khi gửi yêu cầu.</p></div></div>;
-  if (status === "denied") return <div className="identity-status-panel error" role="alert"><ExclamationTriangleIcon width={18}/><div><b>Chưa được cấp quyền thao tác</b><p>Tài khoản hiện tại chưa được phép gửi yêu cầu cấp quyền nhạy cảm.</p></div></div>;
-  if (status === "error") return <div className="identity-status-panel error" role="alert"><ExclamationTriangleIcon width={18}/><div><b>Chưa gửi được yêu cầu</b><p>Vui lòng kiểm tra kết nối và thử lại.</p></div></div>;
-  if (selectedRole?.id === "super-admin") return <div className="identity-status-panel warning" role="note"><ShieldCheckIcon width={18}/><div><b>Vai trò nhạy cảm</b><p>Yêu cầu này cần được rà soát tăng cường tại Trung tâm Định danh.</p></div></div>;
-  return <div className="identity-status-panel" role="note"><LockClosedIcon width={18}/><div><b>Tài khoản không lưu mật khẩu</b><p>Việc xác thực được quản lý qua Trung tâm Định danh QTS.</p></div></div>;
+  const motion = "animate__animated animate__fadeIn animate__faster";
+  if (status === "loading") return <div key={status} className={`identity-status-panel loading ${motion}`} role="status"><span className="identity-loader" aria-hidden="true"/><div><b>Đang chuẩn bị bản nháp yêu cầu...</b><p>Cổng thông tin đang kiểm tra định dạng và phạm vi quyền trước khi gửi qua quy trình chính thức.</p></div></div>;
+  if (status === "pending") return <div key={status} className={`identity-status-panel success ${motion}`} role="status"><CheckCircleIcon width={18}/><div><b>Bản nháp yêu cầu đã sẵn sàng</b><p>Quyền chỉ có hiệu lực sau khi quản trị viên định danh phê duyệt trong hệ thống chính thức.</p></div></div>;
+  if (status === "invalid") return <div key={status} className={`identity-status-panel warning ${motion}`} role="alert"><ExclamationTriangleIcon width={18}/><div><b>Thông tin chưa đầy đủ</b><p>Vui lòng kiểm tra các trường bắt buộc trước khi gửi yêu cầu.</p></div></div>;
+  if (status === "denied") return <div key={status} className={`identity-status-panel error ${motion}`} role="alert"><ExclamationTriangleIcon width={18}/><div><b>Chưa được cấp quyền thao tác</b><p>Tài khoản hiện tại chưa được phép gửi yêu cầu cấp quyền nhạy cảm.</p></div></div>;
+  if (status === "error") return <div key={status} className={`identity-status-panel error ${motion}`} role="alert"><ExclamationTriangleIcon width={18}/><div><b>Chưa gửi được yêu cầu</b><p>Vui lòng kiểm tra kết nối và thử lại.</p></div></div>;
+  if (selectedRole?.id === "super-admin") return <div key={status} className={`identity-status-panel warning ${motion}`} role="note"><ShieldCheckIcon width={18}/><div><b>Vai trò nhạy cảm</b><p>Yêu cầu này cần được rà soát tăng cường tại Trung tâm Định danh.</p></div></div>;
+  return <div key={status} className={`identity-status-panel ${motion}`} role="note"><LockClosedIcon width={18}/><div><b>Tài khoản không lưu mật khẩu</b><p>Việc xác thực được quản lý qua Trung tâm Định danh QTS.</p></div></div>;
 }
 
 function CreateIdentityAccountForm({ onClose }: { onClose: () => void }) {
@@ -748,7 +749,7 @@ function CreateIdentityAccountForm({ onClose }: { onClose: () => void }) {
     </label>
     <div className="record-modal-actions">
       <button className="portal-button portal-button-ghost" type="button" onClick={onClose}>{status === "pending" ? "Đóng" : "Hủy"}</button>
-      <button className="portal-button" type="submit" disabled={requestLocked}>{status === "loading" ? "Đang gửi yêu cầu..." : status === "pending" ? "Đang chờ phê duyệt" : "Gửi yêu cầu cấp quyền"}</button>
+      <button className="portal-button" type="submit" disabled={requestLocked}>{status === "loading" ? "Đang chuẩn bị..." : status === "pending" ? "Bản nháp đã sẵn sàng" : "Chuẩn bị yêu cầu cấp quyền"}</button>
     </div>
   </form>;
 }
@@ -862,10 +863,10 @@ function AddRecordModal({ kind, onClose }: { kind: AddRecordKind; onClose: () =>
           </label>)}
         </div>
         <p className="record-modal-note">{config.note}</p>
-        {submitted && <p className="record-modal-status" role="status">Thông tin đã sẵn sàng để gửi khi quy trình phê duyệt được bật.</p>}
+        {submitted && <p className="record-modal-status" role="status">Bản nháp đã sẵn sàng. Dữ liệu chỉ được ghi chính thức khi quy trình phê duyệt được kết nối.</p>}
         <div className="record-modal-actions">
           <button className="portal-button portal-button-ghost" type="button" onClick={onClose}>Hủy</button>
-          <button className="portal-button" type="submit" disabled={submitted}>{submitted ? "Đã tạo bản nháp" : config.submitLabel}</button>
+          <button className="portal-button" type="submit" disabled={submitted}>{submitted ? "Bản nháp sẵn sàng" : config.submitLabel}</button>
         </div>
       </form>}
     </motion.div>
@@ -922,8 +923,8 @@ function CRM({ leads, loading, error, onRefresh }: { leads: PortalLead[]; loadin
     <PageHeading page="CRM" description="Quản lý quan hệ, cơ hội và tín hiệu khách hàng theo đúng ngữ cảnh."/>
     <div className="crm-grid">{stages.map(stage => <article className="pipeline-column panel" key={stage}><div className="pipeline-heading"><b>{stage}</b><span>{stageCounts[stage as keyof typeof stageCounts]}</span></div><p className="command-empty">{stageCounts[stage as keyof typeof stageCounts] ? "Yêu cầu tư vấn đang nằm trong nhóm này." : "Chưa có cơ hội ở giai đoạn này."}</p></article>)}</div>
     <article className="panel crm-leads-panel"><div className="panel-heading"><div><h2>Yêu cầu tư vấn từ khách hàng</h2><p>Thông tin được gửi từ form landing web và hiển thị cho tài khoản nhân viên, quản trị viên có quyền CRM.</p></div><button className="portal-button portal-button-ghost" type="button" onClick={onRefresh} disabled={loading} aria-busy={loading || undefined}><CloudArrowUpIcon width={13} className={loading ? "spin-icon" : undefined} aria-hidden="true"/>{loading ? "Đang cập nhật" : "Làm mới"}</button></div>
-      {error && <div className="admin-message error admin-message-action" role="alert"><span>{error}</span><button className="portal-button portal-button-ghost" type="button" onClick={onRefresh}>Thử lại</button></div>}
-      {loading && leads.length > 0 && <p className="admin-message info" role="status">Đang làm mới danh sách yêu cầu tư vấn. Bạn vẫn có thể xem dữ liệu hiện tại.</p>}
+      {error && <div className="admin-message error admin-message-action animate__animated animate__fadeIn animate__faster" role="alert"><span>{error}</span><button className="portal-button portal-button-ghost" type="button" onClick={onRefresh}>Thử lại</button></div>}
+      {loading && leads.length > 0 && <p className="admin-message info animate__animated animate__fadeIn animate__faster" role="status">Đang làm mới danh sách yêu cầu tư vấn. Bạn vẫn có thể xem dữ liệu hiện tại.</p>}
       {loading && leads.length === 0 ? <EmptyData title="Đang tải yêu cầu tư vấn">Portal đang đồng bộ yêu cầu mới nhất từ hệ thống.</EmptyData> : leads.length === 0 ? <EmptyData title="Chưa có yêu cầu tư vấn">Khi khách hàng gửi form Yêu cầu tư vấn, thông tin sẽ xuất hiện tại đây và trên nút thông báo.</EmptyData> : <div className="crm-lead-list" aria-live="polite">
         {leads.map(lead => <article className="crm-lead-card" key={lead.id}>
           <div className="crm-lead-card-head">
@@ -940,7 +941,7 @@ function CRM({ leads, loading, error, onRefresh }: { leads: PortalLead[]; loadin
         </article>)}
       </div>}
     </article>
-    <article className="panel" style={{ padding: 18, marginTop: 12 }}><div className="panel-heading"><div><h2>Tài khoản doanh nghiệp</h2><p>Thông tin thương mại sẽ hiển thị sau khi kết nối nguồn CRM.</p></div><button className="portal-button" type="button" onClick={() => setModal("business-account")}><PlusIcon width={13}/>Thêm tài khoản</button></div><table className="table"><thead><tr><th>Doanh nghiệp</th><th>Ngành</th><th>Giá trị năm</th><th>Giai đoạn</th></tr></thead><tbody><tr><td colSpan={4}><EmptyData>Chưa có tài khoản doanh nghiệp nào.</EmptyData></td></tr></tbody></table></article>
+    <article className="panel" style={{ padding: 18, marginTop: 12 }}><div className="panel-heading"><div><h2>Tài khoản doanh nghiệp</h2><p>Thông tin thương mại sẽ hiển thị sau khi kết nối nguồn CRM.</p></div><button className="portal-button" type="button" onClick={() => setModal("business-account")}><PlusIcon width={13}/>Chuẩn bị bản nháp</button></div><table className="table"><thead><tr><th>Doanh nghiệp</th><th>Ngành</th><th>Giá trị năm</th><th>Giai đoạn</th></tr></thead><tbody><tr><td colSpan={4}><EmptyData>Chưa có tài khoản doanh nghiệp nào.</EmptyData></td></tr></tbody></table></article>
     <AnimatePresence>{modal && <AddRecordModal kind={modal} onClose={() => setModal(null)}/>}</AnimatePresence>
   </>;
 }
@@ -957,7 +958,7 @@ function HR() {
       <Kpi label="Năng lực đội ngũ" icon={BoltIcon}/>
     </section>
     <div className="lower-grid">
-      <article className="panel projects-panel"><div className="panel-heading"><div><h2>Hiệu suất đội ngũ</h2><p>Dữ liệu đánh giá hiệu suất gần nhất</p></div><button className="portal-button" type="button" onClick={() => setModal("employee-profile")}><PlusIcon width={13}/>Thêm nhân sự</button></div><table className="table"><thead><tr><th>Nhân sự</th><th>Đội ngũ</th><th>Điểm</th><th>Hiệu suất</th></tr></thead><tbody><tr><td colSpan={4}><EmptyData>Chưa có dữ liệu nhân sự để hiển thị.</EmptyData></td></tr></tbody></table></article>
+      <article className="panel projects-panel"><div className="panel-heading"><div><h2>Hiệu suất đội ngũ</h2><p>Dữ liệu đánh giá hiệu suất gần nhất</p></div><button className="portal-button" type="button" onClick={() => setModal("employee-profile")}><PlusIcon width={13}/>Chuẩn bị bản nháp</button></div><table className="table"><thead><tr><th>Nhân sự</th><th>Đội ngũ</th><th>Điểm</th><th>Hiệu suất</th></tr></thead><tbody><tr><td colSpan={4}><EmptyData>Chưa có dữ liệu nhân sự để hiển thị.</EmptyData></td></tr></tbody></table></article>
       <article className="panel system-panel"><div className="panel-heading"><div><h2>Tình trạng tổ chức</h2><p>Các chỉ số vận hành nguồn nhân lực</p></div></div><EmptyData>Chưa kết nối dữ liệu nhân sự.</EmptyData></article>
     </div>
     <AnimatePresence>{modal && <AddRecordModal kind={modal} onClose={() => setModal(null)}/>}</AnimatePresence>
@@ -1004,7 +1005,7 @@ function Analytics() {
     <PageHeading page="Phân tích" description="Thông tin hỗ trợ quyết định cho toàn bộ hệ thống vận hành doanh nghiệp."/>
     <section className="dashboard-grid">
       <article className="panel chart-panel"><div className="panel-heading"><div><h2>Động lực vận hành</h2><p>Chỉ số tổng hợp từ các chương trình chiến lược</p></div><div className="panel-options" role="group" aria-label="Khoảng thời gian phân tích"><button type="button" className={range === "30 ngày" ? "active" : ""} aria-pressed={range === "30 ngày"} onClick={() => setRange("30 ngày")}>30 ngày</button><button type="button" className={range === "90 ngày" ? "active" : ""} aria-pressed={range === "90 ngày"} onClick={() => setRange("90 ngày")}>90 ngày</button></div></div><EmptyData>{`Chưa có dữ liệu phân tích trong ${range.toLocaleLowerCase("vi-VN")} để hiển thị.`}</EmptyData></article>
-      <article className="panel system-panel"><div className="panel-heading"><div><h2>Tín hiệu cần chú ý</h2><p>Được tổng hợp bởi QTS Intelligence</p></div><BoltIcon className="panel-heading-icon" width={15}/></div><EmptyData>Chưa ghi nhận tín hiệu cần chú ý.</EmptyData></article>
+      <article className="panel system-panel"><div className="panel-heading"><div><h2>Tín hiệu cần chú ý</h2><p>Sẽ hiển thị khi có nguồn dữ liệu vận hành được kết nối.</p></div><BoltIcon className="panel-heading-icon" width={15}/></div><EmptyData>Chưa ghi nhận tín hiệu cần chú ý.</EmptyData></article>
     </section>
   </>;
 }
@@ -1101,9 +1102,9 @@ function AdminUsers() {
     <PageHeading page="Tài khoản nhân viên" description="Theo dõi tài khoản, vai trò và ứng dụng trong tổ chức QTS."/>
     <p className="admin-message" role="note">Tạo tài khoản mới được thực hiện qua quy trình tạo tài khoản có kiểm soát. Cổng thông tin không nhận hoặc lưu mật khẩu ban đầu.</p>
     <section className="admin-users-layout admin-users-layout-single">
-      <article className="panel admin-user-list"><div className="panel-heading"><div><h2>Nhân viên trong tổ chức</h2><p aria-live="polite">{loading ? "Đang cập nhật danh sách tài khoản" : `${total} tài khoản theo bộ lọc hiện tại`}</p></div><button className="portal-button" type="button" onClick={() => setModal("identity-account")}><PlusIcon width={13}/>Thêm tài khoản</button></div>
+      <article className="panel admin-user-list"><div className="panel-heading"><div><h2>Nhân viên trong tổ chức</h2><p aria-live="polite">{loading ? "Đang cập nhật danh sách tài khoản" : `${total} tài khoản theo bộ lọc hiện tại`}</p></div><button className="portal-button" type="button" onClick={() => setModal("identity-account")}><PlusIcon width={13}/>Chuẩn bị yêu cầu</button></div>
         <div className="admin-filters"><input value={query} onChange={event => { setPage(1); setQuery(event.target.value); }} placeholder="Tìm email hoặc tên" aria-label="Tìm tài khoản"/><select value={role} onChange={event => { setPage(1); setRole(event.target.value); }} aria-label="Lọc theo vai trò"><option value="">Tất cả vai trò</option>{adminRoles.map(item => <option key={item} value={item}>{displayRole(item)}</option>)}</select><select value={status} onChange={event => { setPage(1); setStatus(event.target.value); }} aria-label="Lọc theo trạng thái"><option value="">Tất cả trạng thái</option><option value="active">Hoạt động</option><option value="disabled">Vô hiệu hóa</option><option value="invited">Đã mời</option></select>{hasFilters && <button className="portal-button portal-button-ghost admin-clear-filters" type="button" onClick={clearFilters}>Xóa lọc</button>}</div>
-        {error && <div className="admin-message error admin-message-action" role="alert"><span>{error}</span><button className="portal-button portal-button-ghost" type="button" onClick={() => void load()}>Thử lại</button></div>}
+        {error && <div className="admin-message error admin-message-action animate__animated animate__fadeIn animate__faster" role="alert"><span>{error}</span><button className="portal-button portal-button-ghost" type="button" onClick={() => void load()}>Thử lại</button></div>}
         <div className="admin-table-wrap"><table className="table admin-users-table" aria-label="Danh sách tài khoản nhân viên" aria-busy={loading || undefined}><thead><tr><th>Nhân viên</th><th>Vai trò</th><th>Ứng dụng</th><th>Trạng thái</th></tr></thead><tbody>{loading ? <AdminUserSkeletonRows/> : users.length === 0 ? <tr><td colSpan={4}><EmptyData title={hasFilters ? "Không tìm thấy tài khoản" : "Chưa có tài khoản"} action={hasFilters ? <button className="portal-button portal-button-ghost" type="button" onClick={clearFilters}>Xóa bộ lọc</button> : undefined}>{hasFilters ? "Thử thay đổi từ khóa, vai trò hoặc trạng thái để mở rộng kết quả." : "Danh sách nhân viên sẽ hiển thị sau khi dữ liệu được đồng bộ."}</EmptyData></td></tr> : users.map(user => <tr key={user.membership_id}><td data-label="Nhân viên"><b>{user.display_name}</b><small>{user.email}</small></td><td data-label="Vai trò"><span className="admin-chip-list">{user.membership.roles.map(item => <span className="badge blue" key={item}>{displayRole(item)}</span>)}</span></td><td data-label="Ứng dụng"><span className="admin-app-list">{user.membership.applications.join(", ") || "—"}</span></td><td data-label="Trạng thái"><span className={`badge ${user.membership.status === "active" ? "good" : "warning"}`}>{displayStatus(user.membership.status)}</span></td></tr>)}</tbody></table></div>
         <div className="admin-pagination"><button className="portal-button portal-button-ghost" type="button" disabled={page === 1 || loading} onClick={() => setPage(value => value - 1)} aria-label="Trang trước">Trước</button><span aria-live="polite">Trang {page}</span><button className="portal-button portal-button-ghost" type="button" disabled={loading || page * 20 >= total} onClick={() => setPage(value => value + 1)} aria-label="Trang sau">Sau</button></div>
       </article>
@@ -1135,16 +1136,19 @@ function AccessDenied() {
 }
 
 function EnrollmentPending({ error, onContinue, onSignOut }: { error: string; onContinue: () => void; onSignOut: () => void }) {
+  const reduceMotion = useReducedMotion();
   const enrollmentUrl = `${identityWebOrigin}/enrollment-pending`;
-  return <main className="login"><motion.section className="login-card" initial={{ opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>Tài khoản đang chờ hoàn tất kích hoạt</h1><p>{error || "Tài khoản đã đăng nhập nhưng chưa thể truy cập ứng dụng cho đến khi hoàn tất đổi mật khẩu, thiết lập TOTP và lưu mã dự phòng."}</p><div className="login-actions"><a className="portal-button" href={enrollmentUrl}>Mở QTS Identity để hoàn tất</a><button className="portal-button portal-button-ghost" type="button" onClick={onContinue}>Thử lại sau khi hoàn tất</button><button className="portal-button portal-button-ghost" type="button" onClick={onSignOut}>Đăng xuất</button></div><p className="login-hint">Sau khi hoàn tất 3 bước bảo mật, vui lòng liên hệ quản trị viên để xác minh và kích hoạt.</p></motion.section></main>;
+  return <main className="login"><motion.section className="login-card" initial={reduceMotion ? false : { opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduceMotion ? 0 : .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>Tài khoản đang chờ hoàn tất kích hoạt</h1><p>{error || "Tài khoản đã đăng nhập nhưng chưa thể truy cập ứng dụng cho đến khi hoàn tất đổi mật khẩu, thiết lập TOTP và lưu mã dự phòng."}</p><div className="login-actions"><a className="portal-button" href={enrollmentUrl}>Hoàn tất bảo mật tài khoản</a><button className="portal-button portal-button-ghost" type="button" onClick={onContinue}>Thử lại sau khi hoàn tất</button><button className="portal-button portal-button-ghost" type="button" onClick={onSignOut}>Đăng xuất</button></div><p className="login-hint">Sau khi hoàn tất 3 bước bảo mật, vui lòng liên hệ quản trị viên để xác minh và kích hoạt.</p></motion.section></main>;
 }
 
 function Login({ error, onSignIn, busy }: { error?: string; onSignIn: () => void; busy?: boolean }) {
-  return <main className="login"><motion.section className="login-card" initial={{ opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>Không thể xác minh danh tính</h1><p>QTS Portal đã tự động kết nối QTS Identity nhưng chưa hoàn tất được phiên xác thực.</p>{error && <p className="login-error" role="alert">{error}</p>}<button className="portal-button" type="button" onClick={onSignIn} disabled={busy} aria-busy={busy || undefined}>{busy ? "Đang thử lại…" : <>Thử lại xác minh danh tính<ArrowRightIcon width={14}/></>}</button><p className="login-hint">QTS Identity quản lý việc xác thực và quyền truy cập.</p></motion.section></main>;
+  const reduceMotion = useReducedMotion();
+  return <main className="login"><motion.section className="login-card" initial={reduceMotion ? false : { opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduceMotion ? 0 : .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>Không thể xác minh danh tính</h1><p>QTS Portal đã tự động kiểm tra phiên đăng nhập nhưng chưa hoàn tất được xác thực.</p>{error && <p className="login-error animate__animated animate__fadeIn animate__faster" role="alert">{error}</p>}<button className="portal-button" type="button" onClick={onSignIn} disabled={busy} aria-busy={busy || undefined}>{busy ? "Đang thử lại…" : <>Thử lại xác minh danh tính<ArrowRightIcon width={14}/></>}</button><p className="login-hint">Hệ thống đăng nhập QTS quản lý xác thực và quyền truy cập.</p></motion.section></main>;
 }
 
 function AuthenticationStatus({ signingOut = false }: { signingOut?: boolean }) {
-  return <main className="login"><motion.section className="login-card" role="status" aria-live="polite" aria-busy="true" initial={{ opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>{signingOut ? "Đang chuyển đến xác nhận đăng xuất" : "Đang xác minh danh tính"}</h1><div className="auth-progress" aria-hidden="true"><span/><span/><span/></div><p>{signingOut ? "Phiên hiện tại vẫn được giữ cho đến khi bạn xác nhận tại QTS Identity." : "QTS Portal đang tự động kết nối QTS Identity và kiểm tra quyền truy cập."}</p></motion.section></main>;
+  const reduceMotion = useReducedMotion();
+  return <main className="login"><motion.section className="login-card" role="status" aria-live="polite" aria-busy="true" initial={reduceMotion ? false : { opacity: 0, y: 8, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduceMotion ? 0 : .25, ease: [0.22, 1, 0.36, 1] }}><div className="login-logo"><Logo/></div><h1>{signingOut ? "Đang chuyển đến xác nhận đăng xuất" : "Đang xác minh danh tính"}</h1><div className="auth-progress" aria-hidden="true"><span/><span/><span/></div><p>{signingOut ? "Phiên hiện tại vẫn được giữ cho đến khi bạn xác nhận đăng xuất." : "QTS Portal đang tự động xác minh phiên đăng nhập và kiểm tra quyền truy cập."}</p></motion.section></main>;
 }
 
 export default function PortalApp() {
@@ -1182,6 +1186,15 @@ export default function PortalApp() {
         window.history.replaceState({}, document.title, "/");
       } catch (error) {
         if (cancelled) return;
+        if (error instanceof SilentAuthorizationRequiredError) {
+          window.history.replaceState({}, document.title, "/");
+          setPhase("redirecting");
+          void beginAuthorization().catch(reason => {
+            setAuthenticationError(reason instanceof Error ? reason.message : "Không thể bắt đầu đăng nhập.");
+            setPhase("error");
+          });
+          return;
+        }
         if (error instanceof EnrollmentRequiredError) {
           clearPortalSession();
           setAuthenticationError(error.message);
@@ -1228,12 +1241,13 @@ export default function PortalApp() {
         }
         if (error instanceof SessionExpiredError) {
           clearPortalSession();
-          if (ssoHandoff) {
-            setPhase("unauthenticated");
-            return;
-          }
-          setAuthenticationError(error.message);
-          setPhase("error");
+          setAuthenticationError("");
+          rememberChooser(false);
+          setPhase("redirecting");
+          void beginAuthorization().catch(reason => {
+            setAuthenticationError(reason instanceof Error ? reason.message : "Không thể bắt đầu đăng nhập.");
+            setPhase("error");
+          });
           return;
         }
         setAuthenticationError(error instanceof Error ? error.message : "Không tải được phiên. Vui lòng thử lại.");
@@ -1248,13 +1262,13 @@ export default function PortalApp() {
     if (!ssoHandoff || isAuthorizationCallback() || phase !== "unauthenticated" || authorizationStarted.current) return;
     authorizationStarted.current = true;
     window.history.replaceState({}, document.title, "/");
-    signIn(false);
+    signIn(false, true);
   }, [phase, ssoHandoff]);
 
   useEffect(() => {
     if (ssoHandoff || isAuthorizationCallback() || phase !== "unauthenticated" || authorizationStarted.current) return;
     authorizationStarted.current = true;
-    signIn(true);
+    signIn(true, true);
   }, [phase, ssoHandoff]);
 
   const closeCommand = useCallback(() => setCommand(false), []);
@@ -1342,13 +1356,13 @@ export default function PortalApp() {
     mainContentRef.current?.focus({ preventScroll: true });
   }, [command, identity, page, showChooser]);
 
-  const signIn = (openChooser = true) => {
+  const signIn = (openChooser = true, silent = false) => {
     setAuthenticationError("");
     if (phase === "redirecting") return;
     rememberChooser(openChooser);
     setChooser(openChooser);
     setPhase("redirecting");
-    void beginAuthorization().catch(error => {
+    void beginAuthorization(silent ? { prompt: "none" } : undefined).catch(error => {
       setAuthenticationError(error instanceof Error ? error.message : "Không thể bắt đầu đăng nhập.");
       setPhase("error");
     });

@@ -38,7 +38,7 @@ selfservice:
     settings:
       ui_url: http://localhost:3001/settings
       privileged_session_max_age: 5m
-      required_aal: highest_available
+      required_aal: aal1
     recovery:
       enabled: true
       ui_url: http://localhost:3001/recovery

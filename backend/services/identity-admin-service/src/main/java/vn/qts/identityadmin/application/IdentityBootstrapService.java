@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -281,6 +282,8 @@ public class IdentityBootstrapService {
         UUID oryId = existingOryId(id).orElse(null);
         if (oryId == null) {
             oryId = createKratosIdentityIfConfigured(id, email).orElse(null);
+        } else {
+            syncBootstrapLoginId(oryId, email);
         }
         if (rows.isEmpty()) {
             jdbc.update(
@@ -330,8 +333,7 @@ public class IdentityBootstrapService {
             return Optional.empty();
         }
         ObjectNode traits = objectMapper.createObjectNode();
-        traits.put("email", email);
-        traits.put("name", properties.superadminNameOrDefault());
+        traits.setAll(superadminTraits(email));
 
         ObjectNode passwordConfig = objectMapper.createObjectNode();
         passwordConfig.put("password", password);
@@ -374,6 +376,34 @@ public class IdentityBootstrapService {
             return Optional.of(UUID.fromString(response.path("id").asText()));
         } catch (RestClientResponseException error) {
             throw new IllegalStateException("Unable to create bootstrap Kratos identity: HTTP "
+                    + error.getStatusCode().value(), error);
+        }
+    }
+
+    private ObjectNode superadminTraits(String email) {
+        ObjectNode traits = objectMapper.createObjectNode();
+        traits.put("email", email);
+        traits.put("login_id", properties.superadminEmployeeCodeOrDefault());
+        traits.put("name", properties.superadminNameOrDefault());
+        return traits;
+    }
+
+    private void syncBootstrapLoginId(UUID oryId, String email) {
+        ArrayNode patch = objectMapper.createArrayNode();
+        ObjectNode operation = objectMapper.createObjectNode();
+        operation.put("op", "replace");
+        operation.put("path", "/traits");
+        operation.set("value", superadminTraits(email));
+        patch.add(operation);
+        try {
+            restClient.patch()
+                    .uri(URI.create(ory.kratosAdminUrlOrDefault() + "/admin/identities/" + oryId))
+                    .contentType(MediaType.valueOf("application/json-patch+json"))
+                    .body(patch)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException error) {
+            throw new IllegalStateException("Unable to sync bootstrap Kratos login id: HTTP "
                     + error.getStatusCode().value(), error);
         }
     }

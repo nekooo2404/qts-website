@@ -282,6 +282,23 @@ export function seedPrototypeHrmData() {
       { role: "Nhân viên", name: "Lê Minh Anh", at: "29/09/2026 08:15", status: "Done", note: "Gửi yêu cầu." },
       { role: "Manager", name: "Trần Đức Nam", at: "29/09/2026 09:10", status: "Done", note: "Đã rà soát." },
       { role: "HR", name: "Nguyễn Hà Linh", at: "", status: "Current", note: "Chờ HR xác nhận." },
+      { role: "Completed", name: "Hệ thống chấm công", at: "", status: "Waiting", note: "" },
+    ],
+  });
+  workflows.push({
+    id: "WF-2609-002",
+    type: "Nghỉ phép",
+    employeeCode: "QTS-00028",
+    employeeName: "Lê Minh Anh",
+    submittedAt: "29/09/2026 10:05",
+    current: "Manager",
+    status: "Pending",
+    payload: "Nghỉ phép năm từ 03/10/2026 đến 04/10/2026.",
+    steps: [
+      { role: "Nhân viên", name: "Lê Minh Anh", at: "29/09/2026 10:05", status: "Done", note: "Gửi đơn nghỉ phép." },
+      { role: "Manager", name: "Trần Đức Nam", at: "", status: "Current", note: "Chờ quản lý trực tiếp phê duyệt." },
+      { role: "HR", name: "Nguyễn Hà Linh", at: "", status: "Waiting", note: "Chờ kiểm tra số dư phép sau bước quản lý." },
+      { role: "Completed", name: "Sổ cái phép", at: "", status: "Waiting", note: "" },
     ],
   });
 

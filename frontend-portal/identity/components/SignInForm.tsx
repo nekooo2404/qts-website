@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/cn";
 
 type Message = { id?: number; text: string; type?: string };
 type Node = {
@@ -47,28 +46,30 @@ type IdentityResponse = Partial<Flow> & {
 };
 type ActiveIdentitySession = {
   authenticated?: boolean;
-  user?: { id?: string; email?: string; name?: string };
+  user?: { id?: string; email?: string; name?: string; employee_code?: string };
 };
 type Kind = "login" | "settings" | "recovery" | "verification";
-type AuthMode = "sso" | "local";
+type AuthMode = "account" | "issued-id";
 
 const titles: Record<Kind, string> = {
-  login: "Đăng nhập QTS",
+  login: "Log in to your QTS account",
   settings: "Bảo mật tài khoản",
   recovery: "Khôi phục tài khoản",
   verification: "Xác minh email",
 };
 
 const subtitles: Record<Kind, string> = {
-  login: "Một tài khoản cho các ứng dụng được tổ chức cấp quyền.",
+  login: "Access Portal, HRM, and every app your organization grants.",
   settings: "Quản lý mật khẩu, mã dự phòng và thiết bị bảo mật của bạn.",
   recovery: "Khôi phục quyền truy cập bằng quy trình bảo mật của QTS.",
   verification: "Hoàn tất xác minh email trước khi sử dụng hệ sinh thái QTS.",
 };
 
 const labels: Record<string, string> = {
-  identifier: "Email hoặc tên đăng nhập",
+  identifier: "Thông tin đăng nhập",
   email: "Email công việc",
+  login_id: "ID được cấp",
+  "traits.login_id": "ID được cấp",
   password: "Mật khẩu",
   "traits.email": "Email công việc",
   "traits.name": "Họ và tên",
@@ -100,7 +101,7 @@ function translateIdentityText(text?: string) {
 }
 
 function groupLabel(group: string) {
-  if (group === "password") return "Đăng nhập bằng email công việc";
+  if (group === "password") return "Thông tin đăng nhập";
   if (group === "totp") return "Nhập mã xác thực";
   if (group === "lookup_secret") return "Mã dự phòng";
   if (group === "code") return "Mã xác nhận";
@@ -109,9 +110,9 @@ function groupLabel(group: string) {
   return translateIdentityText(group);
 }
 
-function submitLabel(node: Node, group: string) {
+function submitLabel(node: Node, group: string, mode: AuthMode = "account") {
   const method = String(node.attributes.value ?? "");
-  if (group === "password" || method === "password") return "Đăng nhập";
+  if (group === "password" || method === "password") return mode === "issued-id" ? "Continue with SSO" : "Continue";
   if (group === "totp" || method === "totp") return "Xác nhận mã";
   if (group === "lookup_secret" || method === "lookup_secret") return "Dùng mã dự phòng";
   if (group === "oidc" || method === "oidc") return translateIdentityText(node.meta?.label?.text) || "Tiếp tục";
@@ -164,28 +165,6 @@ function buildFormBody(form: HTMLFormElement, submitter: SubmitEvent["submitter"
   return body;
 }
 
-function normalizeLoginIdentifier(value?: string) {
-  return (value ?? "").trim().toLocaleLowerCase("vi-VN");
-}
-
-function emailLocalPart(value?: string) {
-  const normalized = normalizeLoginIdentifier(value);
-  return normalized.includes("@") ? normalized.split("@")[0] : "";
-}
-
-function sessionMatchesIdentifier(session: ActiveIdentitySession, identifier: string) {
-  const target = normalizeLoginIdentifier(identifier);
-  if (!target || session.authenticated !== true) return false;
-  const email = normalizeLoginIdentifier(session.user?.email);
-  const accepted = [session.user?.id, session.user?.email, emailLocalPart(email)].map(normalizeLoginIdentifier).filter(Boolean);
-  return accepted.includes(target);
-}
-
-function firstIdentifierFromFlow(flow: Flow | null) {
-  const node = flow?.ui.nodes.find(item => ["identifier", "email", "traits.email"].includes(item.attributes.name ?? "") && typeof item.attributes.value === "string");
-  return typeof node?.attributes.value === "string" ? node.attributes.value : "";
-}
-
 function isRefreshFlow(flow: BrowserFlow | null) {
   return flow?.refresh === true;
 }
@@ -213,10 +192,15 @@ function rememberLoginMode(mode: AuthMode) {
   }
 }
 
+function normalizeLoginMode(value: string | null): AuthMode | null {
+  if (value === "account" || value === "local") return "account";
+  if (value === "issued-id" || value === "sso") return "issued-id";
+  return null;
+}
+
 function readRememberedLoginMode(): AuthMode | null {
   try {
-    const mode = window.sessionStorage.getItem(loginModeStorageKey);
-    return mode === "local" || mode === "sso" ? mode : null;
+    return normalizeLoginMode(window.sessionStorage.getItem(loginModeStorageKey));
   } catch {
     return null;
   }
@@ -224,43 +208,19 @@ function readRememberedLoginMode(): AuthMode | null {
 
 function BrandHeader() {
   return <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 pt-5 sm:px-6 lg:px-8">
-    <Link href={identityPath("/launcher")} className="flex items-center gap-3" aria-label="Trung tâm định danh QTS">
+    <Link href={identityPath("/launcher")} className="flex items-center gap-3" aria-label="Đăng nhập QTS">
       <span className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-panel">
         <ShieldCheckIcon className="h-5 w-5" aria-hidden="true" />
       </span>
       <span className="grid leading-tight">
         <b className="text-sm font-bold tracking-[-0.03em] text-foreground">QTS</b>
-        <small className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Trung tâm định danh</small>
+        <small className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Đăng nhập an toàn</small>
       </span>
     </Link>
     <div className="flex items-center gap-2">
       <Badge tone="success" className="hidden sm:inline-flex">Sẵn sàng</Badge>
     </div>
   </header>;
-}
-
-function AuthenticationSelector({ mode, onMode, onRestart }: { mode: AuthMode; onMode: (mode: AuthMode) => void; onRestart: () => void }) {
-  const options: Array<{ mode: AuthMode; label: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>> }> = [
-    { mode: "sso", label: "Đăng nhập một lần", icon: ShieldCheckIcon },
-    { mode: "local", label: "Tài khoản nội bộ", icon: KeyIcon },
-  ];
-  return <div className="space-y-3" role="tablist" aria-label="Chọn phương thức đăng nhập">
-    <div className="grid grid-cols-2 gap-2">
-    {options.map(option => {
-      const Icon = option.icon;
-      const selected = mode === option.mode;
-      return <button key={option.mode} type="button" role="tab" aria-selected={selected} onClick={() => onMode(option.mode)} className={cn("flex min-h-12 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", selected ? "border-primary bg-primary text-primary-foreground shadow-panel" : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-muted")}>
-        <span className={cn("grid h-7 w-7 place-items-center rounded-lg", selected ? "bg-white/10 text-primary-foreground" : "bg-muted text-primary")}>
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <span>{option.label}</span>
-      </button>;
-    })}
-    </div>
-    <button type="button" onClick={onRestart} className="w-full text-center text-xs font-semibold text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      Dùng tài khoản khác
-    </button>
-  </div>;
 }
 
 function SecureSessionProgress() {
@@ -270,74 +230,37 @@ function SecureSessionProgress() {
   </Alert>;
 }
 
-function SsoBrowserFlow({ hasOidcGroup }: { hasOidcGroup: boolean }) {
-  if (!hasOidcGroup) return <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
-    <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-    <span>Nếu bạn đã đăng nhập QTS trên trình duyệt này, chỉ cần nhập ID hoặc email công việc để mở lại phiên.</span>
-  </div>;
-  return <div className="flex items-start gap-2 rounded-xl border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
-    <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-    <span>QTS sẽ đưa bạn về ứng dụng đang yêu cầu đăng nhập sau khi xác minh thành công.</span>
-  </div>;
+function LoginMethodNotice({ mode }: { mode: AuthMode }) {
+  if (mode !== "issued-id") return null;
+  return <p className="rounded-xl bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+    Continue with SSO sử dụng phiên đăng nhập sẵn có hoặc ID được tổ chức cấp. Nếu chưa có phiên, hãy nhập ID và mật khẩu để xác minh.
+  </p>;
 }
 
-function SingleSignOnResume({
-  identifier,
-  onIdentifierChange,
-  onSubmit,
-  busy,
-  error,
-  onLocalLogin,
-}: {
-  identifier: string;
-  onIdentifierChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  busy: boolean;
-  error: string;
-  onLocalLogin: () => void;
-}) {
-  return <form onSubmit={onSubmit} aria-busy={busy} aria-label="Đăng nhập một lần" className="space-y-4">
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <h3 className="text-sm font-semibold text-foreground">Vào bằng đăng nhập một lần</h3>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">Dành cho tài khoản đã tạo phiên QTS trên trình duyệt này.</p>
-      <div className="mt-4 grid gap-2">
-        <label className="text-sm font-semibold text-foreground" htmlFor="sso-identifier">ID hoặc email công việc</label>
-        <Input
-          id="sso-identifier"
-          name="sso_identifier"
-          type="text"
-          value={identifier}
-          onChange={event => onIdentifierChange(event.target.value)}
-          autoComplete="username"
-          required
-          disabled={busy}
-          aria-describedby={error ? "sso-identifier-error" : undefined}
-          aria-invalid={Boolean(error) || undefined}
-        />
-        {error && <p id="sso-identifier-error" className="text-xs leading-5 text-destructive" role="alert">{error}</p>}
-      </div>
-      <div className="mt-4 grid gap-3">
-        <Button className="w-full" type="submit" disabled={busy} aria-disabled={busy || undefined}>
-          {busy ? "Đang kiểm tra..." : "Vào hệ thống"} <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
-        </Button>
-        <button type="button" onClick={onLocalLogin} className="text-center text-sm font-semibold text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          Lần đầu hoặc phiên đã hết hạn? Nhập email và mật khẩu
-        </button>
-      </div>
-    </div>
-  </form>;
+function isIdentifierNode(node: Node) {
+  return ["identifier", "email", "login_id", "traits.email", "traits.login_id"].includes(node.attributes.name ?? "");
 }
 
-function LocalLoginNotice() {
-  return <Alert tone="info">
-    Tài khoản nội bộ luôn yêu cầu email và mật khẩu cho mỗi lần đăng nhập.
-  </Alert>;
+function passwordGroupTitle(mode: AuthMode) {
+  return mode === "issued-id" ? "Continue with SSO" : "Log in with email";
+}
+
+function loginFieldLabel(node: Node, mode: AuthMode) {
+  if (isIdentifierNode(node)) return mode === "issued-id" ? "Company ID or issued ID" : "Email address or username";
+  if (node.attributes.name === "password") return "Password";
+  const a = node.attributes;
+  return labels[a.name ?? ""] || translateIdentityText(node.meta?.label?.text) || "Thông tin xác thực";
+}
+
+function loginFieldPlaceholder(node: Node, mode: AuthMode) {
+  if (!isIdentifierNode(node)) return undefined;
+  return mode === "issued-id" ? "QTS-00001" : "name@qtsgroup.vn";
 }
 
 function SecurityNotice() {
   return <div className="flex items-start gap-2 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
     <ComputerDesktopIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-    <span>Mật khẩu chỉ được xử lý tại trung tâm định danh QTS, không lưu trong ứng dụng nghiệp vụ.</span>
+    <span>Mật khẩu chỉ được xử lý trong hệ thống đăng nhập QTS, không lưu trong Portal hoặc HRM.</span>
   </div>;
 }
 
@@ -394,15 +317,14 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
   const [flow, setFlow] = useState<Flow | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<AuthMode>("sso");
-  const [ssoIdentifier, setSsoIdentifier] = useState("");
-  const [ssoResumeError, setSsoResumeError] = useState("");
+  const [ssoChecking, setSsoChecking] = useState(false);
+  const [mode, setMode] = useState<AuthMode>("account");
   const [support] = useState(makeSupportContext);
+  const autoResumeAttempted = useRef(false);
   const restartableError = Boolean(error && isRestartableError(error));
   const permissionError = Boolean(error && isPermissionError(error));
 
   const groups = useMemo(() => [...new Set(flow?.ui.nodes.map(node => node.group).filter(group => group !== "default") ?? [])], [flow]);
-  const ssoGroups = groups.filter(group => group === "oidc");
   const localGroups = groups.filter(group => group !== "oidc");
   const secondAuthenticationChallenge = isSecondAuthenticationChallenge(flow);
 
@@ -413,9 +335,31 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
   }
 
   function selectMode(nextMode: AuthMode) {
-    setSsoResumeError("");
     rememberLoginMode(nextMode);
     setMode(nextMode);
+  }
+
+  async function continueWithSso() {
+    selectMode("issued-id");
+    if (!flow || ssoChecking) return;
+    setSsoChecking(true);
+    setError("");
+    try {
+      const response = await fetch(identityPath("/identity-api/api/session"), {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+      });
+      const session = await response.json().catch(() => null) as ActiveIdentitySession | null;
+      if (response.ok && session?.authenticated === true) {
+        navigate(flow.return_to ?? identityPath("/launcher"));
+      }
+    } catch {
+      // Keep the issued-ID form visible when there is no reusable SSO session.
+    } finally {
+      setSsoChecking(false);
+    }
   }
 
   function restartLogin() {
@@ -439,50 +383,12 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
     window.location.assign(destination.toString());
   }
 
-  async function resumeSingleSignOn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const identifier = ssoIdentifier.trim();
-    if (!identifier) {
-      setSsoResumeError("Vui lòng nhập ID hoặc email công việc.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    setSsoResumeError("");
-    try {
-      const response = await fetch(identityPath("/identity-api/api/session"), {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
-      });
-      const session = await response.json().catch(() => null) as ActiveIdentitySession | null;
-      if (!response.ok || !session?.authenticated) {
-        selectMode("local");
-        setSsoResumeError("Phiên đăng nhập một lần chưa sẵn sàng. Vui lòng nhập email và mật khẩu để tạo phiên mới.");
-        return;
-      }
-      if (!sessionMatchesIdentifier(session, identifier)) {
-        setSsoResumeError("ID không khớp với phiên đang mở trên trình duyệt này. Hãy dùng tài khoản khác hoặc nhập lại.");
-        return;
-      }
-      navigate(flow?.return_to ?? identityPath("/launcher"));
-    } catch {
-      selectMode("local");
-      setSsoResumeError("Chưa kiểm tra được phiên đăng nhập một lần. Vui lòng nhập email và mật khẩu để tạo phiên mới.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || !flow) return;
+    if (busy || ssoChecking || !flow) return;
     const body = buildFormBody(event.currentTarget, (event.nativeEvent as SubmitEvent).submitter);
     setBusy(true);
     setError("");
-    setSsoResumeError("");
     try {
       const response = await fetch(flow.ui.action, {
         method: "POST",
@@ -517,8 +423,8 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
 
   useEffect(() => {
     if (kind !== "login") return;
-    const requestedMode = new URLSearchParams(window.location.search).get("mode");
-    if (requestedMode === "local" || requestedMode === "sso") {
+    const requestedMode = normalizeLoginMode(new URLSearchParams(window.location.search).get("mode"));
+    if (requestedMode) {
       rememberLoginMode(requestedMode);
       setMode(requestedMode);
       return;
@@ -526,12 +432,6 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
     const rememberedMode = readRememberedLoginMode();
     if (rememberedMode) setMode(rememberedMode);
   }, [kind]);
-
-  useEffect(() => {
-    if (!flow || ssoIdentifier) return;
-    const identifier = firstIdentifierFromFlow(flow);
-    if (identifier) setSsoIdentifier(identifier);
-  }, [flow, ssoIdentifier]);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -560,7 +460,7 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
         const action = new URL(result.ui.action, window.location.origin);
         if (action.origin !== window.location.origin || !action.pathname.startsWith(`${api}/self-service/`)) throw new Error("Yêu cầu đăng nhập không hợp lệ.");
         const rememberedMode = readRememberedLoginMode();
-        if (kind === "login" && rememberedMode === "local" && isRefreshFlow(result)) {
+        if (kind === "login" && rememberedMode === "account" && isRefreshFlow(result)) {
           window.location.replace(buildBrowserFlowUrl(api, kind, safeReturnTo));
           return;
         }
@@ -572,37 +472,63 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
     return () => abort.abort();
   }, [kind]);
 
+  useEffect(() => {
+    if (kind !== "login" || !flow || autoResumeAttempted.current || isRefreshFlow(flow) || isSecondAuthenticationChallenge(flow)) return;
+    autoResumeAttempted.current = true;
+    const abort = new AbortController();
+    void fetch(identityPath("/identity-api/api/session"), {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: abort.signal,
+    })
+      .then(async response => {
+        const session = await response.json().catch(() => null) as ActiveIdentitySession | null;
+        if (!response.ok || session?.authenticated !== true) return;
+        navigate(flow.return_to ?? identityPath("/launcher"));
+      })
+      .catch(() => {
+        // No active browser session yet. Keep the credential form visible.
+      });
+    return () => abort.abort();
+  }, [flow, kind]);
+
   function renderFlowForm(group: string) {
     if (!flow) return null;
     const nodes = flow.ui.nodes.filter(node => node.group === "default" || node.group === group);
     const fieldNodes = nodes.filter(node => node.type !== "input" || node.attributes.type !== "submit");
     const submitNodes = nodes.filter(node => node.type === "input" && node.attributes.type === "submit");
-    return <form key={group} action={flow.ui.action} method="post" onSubmit={submit} aria-busy={busy} aria-label={groupLabel(group)} className="space-y-4">
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <h3 className="text-sm font-semibold text-foreground">{groupLabel(group)}</h3>
-        <div className="mt-4 space-y-4">
+    const formTitle = kind === "login" && group === "password" ? passwordGroupTitle(mode) : groupLabel(group);
+    const isPasswordLoginForm = kind === "login" && group === "password";
+    return <form key={group} action={flow.ui.action} method="post" onSubmit={submit} aria-busy={busy || ssoChecking} aria-label={formTitle} className="space-y-4">
+      <div className={isPasswordLoginForm ? "space-y-4" : "rounded-2xl border border-border bg-card p-4"}>
+        <h3 className={isPasswordLoginForm ? "sr-only" : "text-sm font-semibold text-foreground"}>{formTitle}</h3>
+        <div className={isPasswordLoginForm ? "space-y-4" : "mt-4 space-y-4"}>
           {fieldNodes.map((node, index) => {
             const a = node.attributes;
             const id = `ory-${group}-${index}`;
-            const label = labels[a.name ?? ""] || translateIdentityText(node.meta?.label?.text) || "Thông tin xác thực";
             if (node.type === "img" && a.src) return <Image unoptimized key={id} src={a.src} alt="Mã QR để thiết lập ứng dụng xác thực" width={200} height={200} className="rounded-2xl border border-border bg-background p-2" />;
             if (node.type === "text") return <p key={id} className="text-sm leading-6 text-muted-foreground">{translateIdentityText(a.text?.text)}</p>;
             if (node.type !== "input") return null;
             if (a.type === "hidden") return <input key={id} type="hidden" name={a.name} value={String(a.value ?? "")} />;
             const describedBy = `${id}-errors`;
+            const label = kind === "login" && group === "password" ? loginFieldLabel(node, mode) : labels[a.name ?? ""] || translateIdentityText(node.meta?.label?.text) || "Thông tin xác thực";
             if (a.type === "checkbox") return <label key={id} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3 text-sm text-foreground">
               <input className="mt-1 h-4 w-4 accent-slate-900" name={a.name} type="checkbox" defaultChecked={Boolean(a.value)} disabled={a.disabled} aria-invalid={node.messages?.some(m => m.type === "error") || undefined} aria-describedby={node.messages?.length ? describedBy : undefined} />
               <span className="grid gap-1"><b>{label}</b>{renderNodeMessages(node, describedBy, error)}</span>
             </label>;
+            const passwordField = isPasswordLoginForm && a.name === "password";
             return <div key={id} className="grid gap-2">
-              <label className="text-sm font-semibold text-foreground" htmlFor={id}>{label}</label>
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-sm font-semibold text-foreground" htmlFor={id}>{label}</label>
+                {passwordField && emailFlowsEnabled && <Link className="text-xs font-semibold text-primary underline-offset-4 hover:underline" href={identityPath("/recovery")}>Forgot your password?</Link>}
+              </div>
               <Input
                 id={id}
                 name={a.name}
                 type={a.type ?? "text"}
-                defaultValue={kind === "login" && mode === "local" && ["identifier", "email", "traits.email"].includes(a.name ?? "") && ssoIdentifier.trim()
-                  ? ssoIdentifier.trim()
-                  : typeof a.value === "string" ? a.value : undefined}
+                defaultValue={typeof a.value === "string" ? a.value : undefined}
+                placeholder={kind === "login" && group === "password" ? loginFieldPlaceholder(node, mode) : undefined}
                 required={a.required}
                 disabled={a.disabled}
                 autoComplete={a.autocomplete}
@@ -616,8 +542,8 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
         <div className="mt-4 grid gap-2">
           {submitNodes.map((node, index) => {
             const a = node.attributes;
-            return <Button className="w-full" key={`submit-${group}-${index}`} type="submit" name={a.name} value={String(a.value ?? "")} disabled={a.disabled || busy} aria-disabled={busy || undefined}>
-              {busy ? "Đang xử lý..." : submitLabel(node, group)} <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
+            return <Button className="w-full" key={`submit-${group}-${index}`} type="submit" name={a.name} value={String(a.value ?? "")} disabled={a.disabled || busy || ssoChecking} aria-disabled={busy || ssoChecking || undefined}>
+              {busy ? "Đang xử lý..." : submitLabel(node, group, mode)} <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
             </Button>;
           })}
         </div>
@@ -629,10 +555,10 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
 
   return <main className="identity-auth-surface min-h-[100dvh] overflow-hidden bg-background text-foreground">
     <BrandHeader />
-    <section className="mx-auto flex w-full max-w-xl px-4 py-8 sm:px-6 lg:py-12">
+    <section className="mx-auto flex w-full max-w-xl px-4 py-6 sm:px-6 lg:py-6">
       <Card className="relative w-full overflow-hidden bg-card/95 shadow-gateway backdrop-blur">
         <div className="absolute inset-x-0 top-0 h-1 bg-primary" aria-hidden="true" />
-        <CardHeader className="space-y-3">
+        <CardHeader className="space-y-3 p-5 sm:p-6">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-muted text-primary">
             <ShieldCheckIcon className="h-6 w-6" aria-hidden="true" />
           </div>
@@ -641,10 +567,20 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
             <CardDescription>{enrollmentRequired ? "Đổi mật khẩu ban đầu, thiết lập TOTP và lưu mã dự phòng trước khi chờ quản trị viên kích hoạt tài khoản." : subtitles[kind]}</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4 p-5 pt-0 sm:p-6 sm:pt-0">
           {enrollmentRequired && kind === "settings" && <Alert tone="warning">Tài khoản đang chờ hoàn tất kích hoạt. Hoàn tất đổi mật khẩu, TOTP và mã dự phòng tại đây; tài khoản sẽ được kích hoạt sau khi quản trị viên xác minh (<Link className="font-semibold underline" href={identityPath("/enrollment-pending")}>trạng thái chờ</Link>).</Alert>}
-          {kind === "login" && <AuthenticationSelector mode={mode} onMode={selectMode} onRestart={restartLogin} />}
-          {busy && <SecureSessionProgress />}
+          {kind === "login" && <div className="space-y-4" role="group" aria-label="Sign in options">
+            <Button type="button" variant="secondary" className="min-h-12 w-full justify-center rounded-xl border-input bg-background text-[15px] font-semibold text-foreground hover:bg-muted" onClick={() => void continueWithSso()} disabled={busy || ssoChecking} aria-pressed={mode === "issued-id"}>
+              <KeyIcon className="h-4 w-4" aria-hidden="true" />
+              {ssoChecking ? "Checking SSO..." : "Continue with SSO"}
+            </Button>
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground" aria-hidden="true">
+              <span className="h-px flex-1 bg-border" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </div>}
+          {(busy || ssoChecking) && <SecureSessionProgress />}
           {restartableError && <SessionExpiredState onRestart={restartLogin} />}
           {permissionError && !restartableError && <PermissionDeniedState />}
           {error && !restartableError && !permissionError && flow && <Alert role="alert" tone="danger">{error} <button type="button" className="font-semibold underline underline-offset-4" onClick={restartLogin}>Bắt đầu lại</button></Alert>}
@@ -656,22 +592,9 @@ export function SignInForm({ kind = "login", emailFlowsEnabled = false, enrollme
             <p className="text-sm text-muted-foreground">Đang chuẩn bị trang đăng nhập...</p>
           </div>}
           {flowMessages.map(m => <Alert key={m.key} role={m.type === "error" ? "alert" : "status"} tone={m.type === "error" ? "danger" : "info"}>{m.text}</Alert>)}
-          {flow && kind === "login" && mode === "sso" && <>
-            <SsoBrowserFlow hasOidcGroup={ssoGroups.length > 0} />
-            {ssoGroups.length > 0
-              ? ssoGroups.map(renderFlowForm)
-              : <SingleSignOnResume
-                  identifier={ssoIdentifier}
-                  onIdentifierChange={setSsoIdentifier}
-                  onSubmit={resumeSingleSignOn}
-                  busy={busy}
-                  error={ssoResumeError}
-                  onLocalLogin={() => selectMode("local")}
-                />}
-          </>}
-          {flow && kind === "login" && mode === "local" && <>
-            <LocalLoginNotice />
-            {ssoResumeError && <Alert tone="warning">{ssoResumeError}</Alert>}
+          {flow && kind === "login" && <>
+            <LoginMethodNotice mode={mode} />
+            {mode === "issued-id" && <button type="button" className="text-xs font-semibold text-primary underline-offset-4 hover:underline" onClick={() => selectMode("account")}>Use email address instead</button>}
             {localGroups.length === 0 ? secondAuthenticationChallenge
               ? <Alert tone="warning" className="space-y-3">
                   <span>Phiên đăng nhập cũ đang yêu cầu xác thực bổ sung. MFA mặc định đã tắt; nếu bạn chưa tự bật MFA trong cài đặt, hãy bắt đầu đăng nhập lại.</span>

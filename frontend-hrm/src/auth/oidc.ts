@@ -1,6 +1,6 @@
-﻿import { createOidcClient, EnrollmentRequiredError, IdentityUnavailableError, SessionExpiredError } from "@qts/oidc-client";
+﻿import { createOidcClient, EnrollmentRequiredError, IdentityUnavailableError, SessionExpiredError, SilentAuthorizationRequiredError } from "@qts/oidc-client";
 
-export { EnrollmentRequiredError, IdentityUnavailableError, SessionExpiredError };
+export { EnrollmentRequiredError, IdentityUnavailableError, SessionExpiredError, SilentAuthorizationRequiredError };
 
 export type UserInfo = {
   sub: string;
@@ -32,6 +32,7 @@ export type LauncherApplication = {
 type PublicEnvKey =
   | "VITE_IDENTITY_ISSUER"
   | "VITE_API_ISSUER"
+  | "VITE_HRM_API_ISSUER"
   | "VITE_IDENTITY_WEB_ORIGIN"
   | "VITE_HRM_OIDC_CLIENT_ID"
   | "VITE_HRM_OIDC_REDIRECT_URI"
@@ -40,6 +41,7 @@ type PublicEnvKey =
 const REQUIRED_PRODUCTION_ENV: PublicEnvKey[] = [
   "VITE_IDENTITY_ISSUER",
   "VITE_API_ISSUER",
+  "VITE_HRM_API_ISSUER",
   "VITE_IDENTITY_WEB_ORIGIN",
   "VITE_HRM_OIDC_CLIENT_ID",
   "VITE_HRM_OIDC_REDIRECT_URI",
@@ -107,6 +109,7 @@ export function hrmRuntimeConfigIssue() {
 
 export const identityIssuer = import.meta.env.VITE_IDENTITY_ISSUER ?? "http://localhost:4444/";
 export const apiIssuer = (import.meta.env.VITE_API_ISSUER ?? identityIssuer).replace(/\/$/, "");
+export const hrmApiIssuer = (import.meta.env.VITE_HRM_API_ISSUER ?? apiIssuer).replace(/\/$/, "");
 export const identityWebOrigin = (import.meta.env.VITE_IDENTITY_WEB_ORIGIN ?? "http://localhost:3001").replace(/\/$/, "");
 
 function browserTokenStorageMode() {

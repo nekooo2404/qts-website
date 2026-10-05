@@ -149,9 +149,16 @@ public class IdentityReadService {
     }
 
     private Map<String, Object> sessionResponse(IdentityContext context, String fallbackSessionId) {
+        Map<String, Object> user = new HashMap<>();
+        user.put("id", context.userId());
+        user.put("email", context.email());
+        user.put("name", context.displayName());
+        if (context.employeeCode() != null && !context.employeeCode().isBlank()) {
+            user.put("employee_code", context.employeeCode());
+        }
         return Map.of(
                 "authenticated", true,
-                "user", Map.of("id", context.userId(), "email", context.email(), "name", context.displayName()),
+                "user", Map.copyOf(user),
                 "tenant", Map.of("id", context.tenantId(), "slug", context.tenantSlug(), "name", context.tenantName()),
                 "session", Map.of(
                         "id", context.sessionId() == null ? fallbackSessionId : context.sessionId(),
@@ -216,7 +223,12 @@ public class IdentityReadService {
         if (sid == null) {
             throw new IdentityAdminException("invalid_token", "Token không có phiên đăng nhập hợp lệ.", 401);
         }
-        return repository.context(subject, tenant, sid);
+        IdentityContext context = repository.context(subject, tenant, sid);
+        String clientId = TokenClaimReader.string(jwt, "qts_client");
+        if (!clientId.isBlank() && !repository.canAccessApplicationClient(context, clientId)) {
+            throw new IdentityAdminException("access_denied", "Ứng dụng chưa được cấp quyền truy cập.", 403);
+        }
+        return context;
     }
 
     private static void require(IdentityContext context, String permission) {
